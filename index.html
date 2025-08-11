@@ -55,19 +55,30 @@
             border-radius: 4px;
         }
 
-        button {
+        .botoes-acao {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .botoes-acao button {
             width: 100%;
-            padding: 10px;
+            margin-top: 0;
+        }
+
+        .btn-adicionar {
             background-color: #28a745;
             color: #fff;
             border: none;
             border-radius: 4px;
             font-size: 16px;
             cursor: pointer;
-            margin-top: 10px;
+            padding: 10px;
+            width: 100%;
         }
 
-        button:hover {
+        .btn-adicionar:hover {
             background-color: #218838;
         }
 
@@ -131,11 +142,18 @@
         
         .btn-pdf {
             background-color: #007bff;
-            margin-top: 20px;
         }
 
         .btn-pdf:hover {
             background-color: #0056b3;
+        }
+
+        .btn-fechar {
+            background-color: #6c757d;
+        }
+
+        .btn-fechar:hover {
+            background-color: #5a6268;
         }
     </style>
 </head>
@@ -161,7 +179,7 @@
                 <label for="contato">Contato:</label>
                 <input type="text" id="contato" placeholder="(99) 99999-9999" required>
             </div>
-            <button type="submit">Adicionar Reserva</button>
+            <button class="btn-adicionar" type="submit">Adicionar Reserva</button>
         </form>
 
         <hr>
@@ -205,8 +223,10 @@
             </table>
         </div>
         
-        <button id="gerar-pdf-btn" class="btn-pdf">Gerar PDF</button>
-
+        <div class="botoes-acao">
+            <button id="gerar-pdf-btn" class="btn-pdf">Gerar PDF</button>
+            <button id="fechar-pagina-btn" class="btn-fechar">Fechar Página</button>
+        </div>
     </div>
 
     <script>
@@ -217,6 +237,7 @@
             const dataInicioInput = document.getElementById('data-inicio');
             const dataFimInput = document.getElementById('data-fim');
             const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
+            const fecharPaginaBtn = document.getElementById('fechar-pagina-btn');
             
             // Configuração do Firebase com suas chaves
             const firebaseConfig = {
@@ -235,7 +256,6 @@
             
             let reservas = [];
 
-            // Adiciona o ouvinte de eventos em tempo real do Firebase
             reservasRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 reservas = [];
@@ -267,7 +287,6 @@
                     status: 'Reservado'
                 };
                 
-                // Envia a nova reserva para o Firebase
                 reservasRef.push(novaReserva)
                     .then(() => {
                         console.log("Reserva adicionada com sucesso!");
@@ -291,6 +310,11 @@
                     html2canvas: { scale: 2 },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 });
+            });
+
+            // Adiciona o evento de clique para fechar a página
+            fecharPaginaBtn.addEventListener('click', () => {
+                window.close();
             });
 
             function ordenarReservas() {
@@ -350,7 +374,6 @@
                     selectStatus.addEventListener('change', (e) => {
                         const novoStatus = e.target.value;
                         
-                        // Atualiza a reserva no Firebase
                         reservasRef.child(reserva.id).update({ status: novoStatus })
                             .then(() => console.log("Status atualizado com sucesso!"))
                             .catch(error => console.error("Erro ao atualizar status: ", error));
@@ -368,8 +391,6 @@
                     selectElement.classList.add('status-cancelado');
                 }
             }
-
-            // A renderização inicial será feita pelo evento 'on' do Firebase
         });
     </script>
 </body>
