@@ -12,6 +12,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            font-size: 12px;
             background-color: #f4f4f4;
             margin: 0;
             padding: 20px;
@@ -54,31 +55,20 @@
             border: 1px solid #ccc;
             border-radius: 4px;
         }
-
-        .botoes-acao {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .botoes-acao button {
+        
+        #btn-form-reserva {
             width: 100%;
-            margin-top: 0;
-        }
-
-        .btn-adicionar {
+            padding: 10px;
             background-color: #28a745;
             color: #fff;
             border: none;
             border-radius: 4px;
             font-size: 16px;
             cursor: pointer;
-            padding: 10px;
-            width: 100%;
+            margin-top: 10px;
         }
 
-        .btn-adicionar:hover {
+        #btn-form-reserva:hover {
             background-color: #218838;
         }
 
@@ -140,6 +130,18 @@
             font-weight: bold;
         }
         
+        .botoes-acao {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .botoes-acao button {
+            width: 100%;
+            margin-top: 0;
+        }
+
         .btn-pdf {
             background-color: #007bff;
         }
@@ -155,12 +157,46 @@
         .btn-fechar:hover {
             background-color: #5a6268;
         }
+
+        .mensagem-sucesso {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none; /* Inicia escondida */
+        }
+        
+        .btn-editar, .btn-cancelar-edicao {
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn-editar {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .btn-cancelar-edicao {
+            background-color: #dc3545;
+            color: #fff;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>Cadastro de Reservas</h1>
+
+        <div id="mensagem-sucesso" class="mensagem-sucesso">
+            Reserva adicionada com sucesso!
+        </div>
 
         <form id="form-reserva">
             <div class="input-group">
@@ -177,9 +213,10 @@
             </div>
             <div class="input-group">
                 <label for="contato">Contato:</label>
-                <input type="text" id="contato" placeholder="(99) 99999-9999" required>
+                <input type="text" id="contato" placeholder="(99) 99999-9999" required maxlength="15">
             </div>
-            <button class="btn-adicionar" type="submit">Adicionar Reserva</button>
+            <button id="btn-form-reserva" type="submit">Adicionar Reserva</button>
+            <button id="btn-cancelar-edicao" class="btn-cancelar-edicao" style="display:none;" type="button">Cancelar Edição</button>
         </form>
 
         <hr>
@@ -216,6 +253,7 @@
                         <th>Responsável</th>
                         <th>Contato</th>
                         <th>Status</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -238,7 +276,13 @@
             const dataFimInput = document.getElementById('data-fim');
             const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
             const fecharPaginaBtn = document.getElementById('fechar-pagina-btn');
+            const mensagemSucesso = document.getElementById('mensagem-sucesso');
+            const btnFormReserva = document.getElementById('btn-form-reserva');
+            const btnCancelarEdicao = document.getElementById('btn-cancelar-edicao');
+            const contatoInput = document.getElementById('contato');
             
+            let reservaParaEditar = null;
+
             // Configuração do Firebase com suas chaves
             const firebaseConfig = {
                 apiKey: "AIzaSyDut5CV-mDqnuKV0MH8MM2ivOQMP-AF94E",
@@ -269,6 +313,12 @@
             formReserva.addEventListener('submit', (e) => {
                 e.preventDefault();
 
+                // Validação do campo de contato
+                if (!contatoInput.value) {
+                    alert('O campo Contato é obrigatório.');
+                    return; // Impede o envio do formulário
+                }
+
                 const dataInput = document.getElementById('data');
                 const dataSelecionada = new Date(dataInput.value + 'T00:00:00');
                 const dataAtual = new Date();
@@ -279,29 +329,68 @@
                     return;
                 }
 
-                const novaReserva = {
+                const dadosReserva = {
                     data: dataInput.value,
                     descricao: document.getElementById('descricao').value,
                     responsavel: document.getElementById('responsavel').value,
                     contato: document.getElementById('contato').value,
-                    status: 'Reservado'
                 };
-                
-                reservasRef.push(novaReserva)
-                    .then(() => {
-                        console.log("Reserva adicionada com sucesso!");
-                        formReserva.reset();
-                    })
-                    .catch(error => {
-                        console.error("Erro ao adicionar reserva: ", error);
-                    });
+
+                if (reservaParaEditar) {
+                    // Modo de edição: atualiza a reserva existente
+                    reservasRef.child(reservaParaEditar.id).update(dadosReserva)
+                        .then(() => {
+                            mostrarMensagemSucesso("Reserva atualizada com sucesso!");
+                            formReserva.reset();
+                            resetarFormulario();
+                        })
+                        .catch(error => console.error("Erro ao atualizar reserva: ", error));
+
+                } else {
+                    // Modo de adição: adiciona uma nova reserva
+                    dadosReserva.status = 'Reservado';
+                    reservasRef.push(dadosReserva)
+                        .then(() => {
+                            mostrarMensagemSucesso("Reserva adicionada com sucesso!");
+                            formReserva.reset();
+                        })
+                        .catch(error => {
+                            console.error("Erro ao adicionar reserva: ", error);
+                        });
+                }
             });
+
+            // Adiciona o ouvinte de eventos para a máscara
+            contatoInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                let formattedValue = '';
+
+                if (value.length > 0) {
+                    formattedValue = '(' + value.substring(0, 2);
+                }
+                if (value.length >= 3) {
+                    formattedValue += ') ' + value.substring(2, 7);
+                }
+                if (value.length >= 8) {
+                    formattedValue += '-' + value.substring(7, 11);
+                }
+
+                e.target.value = formattedValue;
+            });
+
 
             filtroStatusSelect.addEventListener('change', renderizarTabela);
             dataInicioInput.addEventListener('change', renderizarTabela);
             dataFimInput.addEventListener('change', renderizarTabela);
-            
+
             gerarPdfBtn.addEventListener('click', () => {
+                // Esconde a coluna inteira de Ações
+                const thAcoes = document.querySelector('th:last-child');
+                const tdAcoes = document.querySelectorAll('td:last-child');
+                
+                thAcoes.style.display = 'none';
+                tdAcoes.forEach(td => td.style.display = 'none');
+
                 const element = document.getElementById('tabela-para-pdf');
                 html2pdf(element, {
                     margin: 10,
@@ -309,13 +398,67 @@
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2 },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                }).then(() => {
+                    // Mostra a coluna de Ações novamente após a geração do PDF
+                    thAcoes.style.display = '';
+                    tdAcoes.forEach(td => td.style.display = '');
                 });
             });
 
-            // Adiciona o evento de clique para fechar a página
             fecharPaginaBtn.addEventListener('click', () => {
                 window.close();
             });
+            
+            // Adiciona um listener para os botões de editar na tabela
+            tabelaReservasBody.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-editar')) {
+                    const idReserva = e.target.closest('tr').dataset.id;
+                    editarReserva(idReserva);
+                }
+            });
+
+            // Adiciona um listener para o botão de cancelar edição
+            btnCancelarEdicao.addEventListener('click', () => {
+                resetarFormulario();
+            });
+
+            // Nova função para formatar a data
+            function formatarData(dataString) {
+                const [ano, mes, dia] = dataString.split('-');
+                return `${dia}-${mes}-${ano}`;
+            }
+
+            function editarReserva(id) {
+                reservaParaEditar = reservas.find(res => res.id === id);
+                if (reservaParaEditar) {
+                    document.getElementById('data').value = reservaParaEditar.data;
+                    document.getElementById('descricao').value = reservaParaEditar.descricao;
+                    document.getElementById('responsavel').value = reservaParaEditar.responsavel;
+                    document.getElementById('contato').value = reservaParaEditar.contato;
+                    
+                    btnFormReserva.textContent = "Salvar Alterações";
+                    btnFormReserva.style.backgroundColor = "#ffc107";
+                    btnFormReserva.style.color = "#000";
+                    btnCancelarEdicao.style.display = "inline-block";
+                }
+            }
+
+            function resetarFormulario() {
+                formReserva.reset();
+                btnFormReserva.textContent = "Adicionar Reserva";
+                btnFormReserva.style.backgroundColor = "#28a745";
+                btnFormReserva.style.color = "#fff";
+                btnCancelarEdicao.style.display = "none";
+                reservaParaEditar = null;
+            }
+
+            function mostrarMensagemSucesso(mensagem) {
+                mensagemSucesso.textContent = mensagem;
+                mensagemSucesso.style.display = 'block';
+                setTimeout(() => {
+                    mensagemSucesso.style.display = 'none';
+                }, 3000);
+            }
 
             function ordenarReservas() {
                 reservas.sort((a, b) => {
@@ -352,8 +495,9 @@
 
                 reservasFiltradas.forEach(reserva => {
                     const novaLinha = document.createElement('tr');
+                    novaLinha.dataset.id = reserva.id;
                     novaLinha.innerHTML = `
-                        <td>${reserva.data}</td>
+                        <td>${formatarData(reserva.data)}</td>
                         <td>${reserva.descricao}</td>
                         <td>${reserva.responsavel}</td>
                         <td>${reserva.contato}</td>
@@ -364,6 +508,9 @@
                                 <option value="Cancelado" ${reserva.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
                             </select>
                         </td>
+                        <td>
+                            <button class="btn-editar">Editar</button>
+                        </td>
                     `;
                     
                     tabelaReservasBody.appendChild(novaLinha);
@@ -373,7 +520,6 @@
 
                     selectStatus.addEventListener('change', (e) => {
                         const novoStatus = e.target.value;
-                        
                         reservasRef.child(reserva.id).update({ status: novoStatus })
                             .then(() => console.log("Status atualizado com sucesso!"))
                             .catch(error => console.error("Erro ao atualizar status: ", error));
