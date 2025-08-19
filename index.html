@@ -19,12 +19,12 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             background: #fff;
             padding: 20px 30px;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
         h1, h2 {
@@ -48,7 +48,8 @@
             font-weight: bold;
         }
 
-        .input-group input {
+        .input-group input,
+        .input-group textarea {
             width: 100%;
             padding: 8px;
             box-sizing: border-box;
@@ -72,48 +73,61 @@
             background-color: #218838;
         }
 
+        /* AJUSTE AQUI: Centraliza e melhora o espaçamento dos filtros */
         .filtros-container {
             display: flex;
-            justify-content: space-between;
+            justify-content: center; /* Centraliza horizontalmente */
             align-items: center;
             margin-bottom: 20px;
-            flex-wrap: wrap; /* Permite que os itens quebrem a linha em telas menores */
+            flex-wrap: wrap;
+            gap: 15px; /* Adiciona um espaço fixo entre os itens */
         }
 
         .filtro-item {
-            flex: 1;
-            margin-right: 10px;
+            /* Removendo flex: 1 para evitar que os itens se expandam e criem grandes espaços */
             margin-bottom: 10px;
         }
-
-        .filtro-item:last-child {
-            margin-right: 0;
-        }
         
+        /* NOVO: Wrapper para a tabela que permite a rolagem */
+        .tabela-wrapper {
+            overflow-x: auto;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            table-layout: fixed;
         }
 
         table, th, td {
             border: 1px solid #ddd;
         }
-
+        
         th, td {
             padding: 12px;
             text-align: left;
+            word-wrap: break-word;
         }
-
+        
         th {
             background-color: #f2f2f2;
             color: #333;
         }
 
+        th:nth-child(1), td:nth-child(1) { width: 7%; }  /* Data */
+        th:nth-child(2), td:nth-child(2) { width: 18%; } /* Descrição */
+        th:nth-child(3), td:nth-child(3) { width: 15%; } /* Responsável */
+        th:nth-child(4), td:nth-child(4) { width: 10%; } /* Contato */
+        th:nth-child(5), td:nth-child(5) { width: 28%; } /* Observações */
+        th:nth-child(6), td:nth-child(6) { width: 10%; } /* Status */
+        th:nth-child(7), td:nth-child(7) { width: 12%; } /* Criador / Ações */
+
+
         /* Classes de cores para as linhas da tabela */
-        .confirmado-row { background-color: #d4edda; } /* Verde claro */
-        .reservado-row { background-color: #fff3cd; }   /* Laranja claro */
-        .cancelado-row { background-color: #e9ecef; }   /* Cinza claro */
+        .confirmado-row { background-color: #d4edda; }
+        .reservado-row { background-color: #fff3cd; }
+        .cancelado-row { background-color: #e9ecef; }
         
         .status-select {
             width: 100%;
@@ -173,7 +187,7 @@
             border-radius: 4px;
             margin-bottom: 20px;
             text-align: center;
-            display: none; /* Inicia escondida */
+            display: none;
         }
         
         .btn-editar, .btn-cancelar-edicao, .btn-excluir {
@@ -198,12 +212,78 @@
             color: #fff;
             margin-left: 10px;
         }
+
+        .btn-csv {
+            background-color: #1a7c36;
+            color: #fff;
+        }
+
+        .resumo-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .resumo-card {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            flex: 1;
+            margin: 5px;
+            min-width: 150px;
+        }
+        
+        .resumo-card.alerta-vermelho {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .resumo-card h3 {
+            margin: 0 0 5px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .resumo-card.alerta-vermelho h3,
+        .resumo-card.alerta-vermelho p {
+            color: #721c24;
+        }
+
+        .resumo-card p {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+            color: #333;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>Cadastro de Reservas</h1>
+
+        <div class="resumo-container">
+            <div class="resumo-card">
+                <h3>Total de Reservas</h3>
+                <p id="total-reservas">0</p>
+            </div>
+            <div class="resumo-card">
+                <h3>Confirmadas</h3>
+                <p id="total-confirmadas">0</p>
+            </div>
+            <div class="resumo-card">
+                <h3>Canceladas</h3>
+                <p id="total-canceladas">0</p>
+            </div>
+            <div id="reservas-7dias-card" class="resumo-card">
+                <h3>Próximos 7 Dias</h3>
+                <p id="reservas-7dias">0</p>
+            </div>
+        </div>
 
         <div id="mensagem-sucesso" class="mensagem-sucesso">
             Reserva adicionada com sucesso!
@@ -227,6 +307,10 @@
                 <input type="text" id="contato" placeholder="(99) 99999-9999" required maxlength="15">
             </div>
             <div class="input-group">
+                <label for="observacoes">Observações:</label>
+                <textarea id="observacoes" placeholder="Adicione notas ou observações"></textarea>
+            </div>
+            <div class="input-group">
                 <label for="usuario">Quem fez a reserva:</label>
                 <input type="text" id="usuario" placeholder="Quem fez a reserva" required>
             </div>
@@ -237,7 +321,7 @@
         <hr>
 
         <div class="filtros-container">
-             <div class="filtro-item">
+            <div class="filtro-item">
                 <label for="filtro-pesquisa">Pesquisar:</label>
                 <input type="text" id="filtro-pesquisa" placeholder="Buscar por responsável ou descrição">
             </div>
@@ -263,7 +347,7 @@
 
         <h2>Reservas Cadastradas</h2>
         
-        <div id="tabela-para-pdf">
+        <div id="tabela-para-pdf" class="tabela-wrapper">
             <table id="tabela-reservas">
                 <thead>
                     <tr>
@@ -271,8 +355,9 @@
                         <th>Descrição</th>
                         <th>Responsável</th>
                         <th>Contato</th>
+                        <th>Observações</th>
                         <th>Status</th>
-                        <th>Ações</th>
+                        <th>Criador / Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -282,6 +367,7 @@
         
         <div class="botoes-acao">
             <button id="gerar-pdf-btn" class="btn-pdf">Gerar PDF</button>
+            <button id="gerar-csv-btn" class="btn-csv">Gerar Excel (CSV)</button>
             <button id="fechar-pagina-btn" class="btn-fechar">Fechar Página</button>
         </div>
         <div style="text-align: right; font-size: 14px; margin-top: 15px;">
@@ -296,16 +382,24 @@
             const filtroStatusSelect = document.getElementById('filtro-status');
             const dataInicioInput = document.getElementById('data-inicio');
             const dataFimInput = document.getElementById('data-fim');
-            const filtroPesquisaInput = document.getElementById('filtro-pesquisa'); // NOVO: Campo de pesquisa
+            const filtroPesquisaInput = document.getElementById('filtro-pesquisa'); 
             const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
+            const gerarCsvBtn = document.getElementById('gerar-csv-btn');
             const fecharPaginaBtn = document.getElementById('fechar-pagina-btn');
             const mensagemSucesso = document.getElementById('mensagem-sucesso');
             const btnFormReserva = document.getElementById('btn-form-reserva');
             const btnCancelarEdicao = document.getElementById('btn-cancelar-edicao');
             const contatoInput = document.getElementById('contato');
             const usuarioInput = document.getElementById('usuario');
+            const observacoesInput = document.getElementById('observacoes');
             const ultimoUsuarioInfo = document.getElementById('ultimo-usuario-info');
-            
+
+            const totalReservasElement = document.getElementById('total-reservas');
+            const totalConfirmadasElement = document.getElementById('total-confirmadas');
+            const totalCanceladasElement = document.getElementById('total-canceladas');
+            const reservas7diasElement = document.getElementById('reservas-7dias');
+            const reservas7diasCard = document.getElementById('reservas-7dias-card');
+
             let reservaParaEditar = null;
 
             // Configuração do Firebase com suas chaves
@@ -334,12 +428,12 @@
                 ordenarReservas();
                 renderizarTabela();
                 atualizarUltimoUsuarioNaPagina();
+                atualizarResumo();
             });
 
             formReserva.addEventListener('submit', (e) => {
                 e.preventDefault();
 
-                // Validação do campo de contato e usuário
                 if (!contatoInput.value) {
                     alert('O campo Contato é obrigatório.');
                     return;
@@ -360,7 +454,6 @@
                     return;
                 }
 
-                // VALIDAÇÃO DE CONFLITO ATUALIZADA
                 const conflitoExistente = reservas.some(reserva => 
                     reserva.data === dataInput.value &&
                     reserva.descricao.toLowerCase() === descricaoInput.value.toLowerCase() &&
@@ -377,12 +470,12 @@
                     data: dataInput.value,
                     descricao: descricaoInput.value,
                     responsavel: document.getElementById('responsavel').value,
-                    contato: document.getElementById('contato').value,
+                    contato: contatoInput.value,
+                    observacoes: observacoesInput.value,
                     ultimoUsuario: usuarioInput.value
                 };
 
                 if (reservaParaEditar) {
-                    // Modo de edição: atualiza a reserva existente
                     reservasRef.child(reservaParaEditar.id).update(dadosReserva)
                         .then(() => {
                             mostrarMensagemSucesso("Reserva atualizada com sucesso!");
@@ -392,7 +485,6 @@
                         .catch(error => console.error("Erro ao atualizar reserva: ", error));
 
                 } else {
-                    // Modo de adição: adiciona uma nova reserva
                     dadosReserva.status = 'Reservado';
                     reservasRef.push(dadosReserva)
                         .then(() => {
@@ -405,7 +497,6 @@
                 }
             });
 
-            // Adiciona o ouvinte de eventos para a máscara
             contatoInput.addEventListener('input', (e) => {
                 let value = e.target.value.replace(/\D/g, '');
                 let formattedValue = '';
@@ -427,12 +518,11 @@
             filtroStatusSelect.addEventListener('change', renderizarTabela);
             dataInicioInput.addEventListener('change', renderizarTabela);
             dataFimInput.addEventListener('change', renderizarTabela);
-            filtroPesquisaInput.addEventListener('input', renderizarTabela); // NOVO: Listener para o campo de pesquisa
+            filtroPesquisaInput.addEventListener('input', renderizarTabela);
 
             gerarPdfBtn.addEventListener('click', () => {
                 const tabelaParaPdf = document.getElementById('tabela-para-pdf');
                 
-                // Salva o estado atual das cores das linhas
                 const linhas = document.querySelectorAll('#tabela-reservas tbody tr');
                 const estadosCores = Array.from(linhas).map(linha => {
                     return {
@@ -441,16 +531,18 @@
                     };
                 });
 
-                // Remove as classes de cor e esconde a coluna de Ações
                 linhas.forEach(linha => linha.classList.remove('reservado-row', 'confirmado-row', 'cancelado-row'));
                 const thAcoes = document.querySelector('th:last-child');
                 const tdAcoes = document.querySelectorAll('td:last-child');
                 thAcoes.style.display = 'none';
                 tdAcoes.forEach(td => td.style.display = 'none');
-                
-                // Define temporariamente a fonte para o PDF
-                tabelaParaPdf.style.fontSize = '12px';
 
+                const thObservacoes = document.querySelector('th:nth-child(5)');
+                const tdObservacoes = document.querySelectorAll('td:nth-child(5)');
+                thObservacoes.style.display = 'none';
+                tdObservacoes.forEach(td => td.style.display = 'none');
+                
+                tabelaParaPdf.style.fontSize = '12px';
 
                 html2pdf(tabelaParaPdf, {
                     margin: 10,
@@ -459,12 +551,13 @@
                     html2canvas: { scale: 2 },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 }).then(() => {
-                    // Restaura a fonte e a coluna de Ações
                     tabelaParaPdf.style.fontSize = '';
                     thAcoes.style.display = '';
                     tdAcoes.forEach(td => td.style.display = '');
 
-                    // Restaura as cores das linhas
+                    thObservacoes.style.display = '';
+                    tdObservacoes.forEach(td => td.style.display = '');
+
                     estadosCores.forEach(estado => {
                         if (estado.corClass) {
                             estado.element.classList.add(estado.corClass);
@@ -473,17 +566,46 @@
                 });
             });
 
+            gerarCsvBtn.addEventListener('click', () => {
+                const dadosTabela = [];
+                const cabecalho = ['Data', 'Descricao', 'Responsavel', 'Contato', 'Observacoes', 'Status', 'Criador'];
+                dadosTabela.push(cabecalho.join(';'));
+                
+                const linhas = document.querySelectorAll('#tabela-reservas tbody tr');
+                linhas.forEach(linha => {
+                    const celulas = linha.querySelectorAll('td');
+                    const status = linha.querySelector('.status-select').value;
+                    const dadosLinha = [
+                        celulas[0].textContent,
+                        celulas[1].textContent,
+                        celulas[2].textContent,
+                        celulas[3].textContent,
+                        celulas[4].textContent,
+                        status,
+                        celulas[6].textContent.replace('EditarExcluir', '').trim()
+                    ];
+                    dadosTabela.push(dadosLinha.join(';'));
+                });
+
+                const csvContent = "data:text/csv;charset=utf-8," + dadosTabela.join('\n');
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "reservas_clube.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
             fecharPaginaBtn.addEventListener('click', () => {
                 window.close();
             });
             
-            // Adiciona um listener para os botões de editar e excluir na tabela
             tabelaReservasBody.addEventListener('click', (e) => {
                 if (e.target.classList.contains('btn-editar')) {
                     const idReserva = e.target.closest('tr').dataset.id;
                     editarReserva(idReserva);
                 }
-                 // NOVO: Ação de exclusão
                 if (e.target.classList.contains('btn-excluir')) {
                     const idReserva = e.target.closest('tr').dataset.id;
                     if (confirm("Tem certeza que deseja excluir esta reserva? Esta ação não pode ser desfeita.")) {
@@ -494,12 +616,10 @@
                 }
             });
 
-            // Adiciona um listener para o botão de cancelar edição
             btnCancelarEdicao.addEventListener('click', () => {
                 resetarFormulario();
             });
 
-            // Nova função para formatar a data
             function formatarData(dataString) {
                 const [ano, mes, dia] = dataString.split('-');
                 return `${dia}-${mes}-${ano}`;
@@ -512,6 +632,7 @@
                     document.getElementById('descricao').value = reservaParaEditar.descricao;
                     document.getElementById('responsavel').value = reservaParaEditar.responsavel;
                     document.getElementById('contato').value = reservaParaEditar.contato;
+                    document.getElementById('observacoes').value = reservaParaEditar.observacoes || '';
                     document.getElementById('usuario').value = reservaParaEditar.ultimoUsuario || '';
                     
                     btnFormReserva.textContent = "Salvar Alterações";
@@ -544,12 +665,39 @@
                 });
             }
 
+            function atualizarResumo() {
+                const total = reservas.length;
+                const confirmadas = reservas.filter(res => res.status === 'Confirmado').length;
+                const canceladas = reservas.filter(res => res.status === 'Cancelado').length;
+
+                const hoje = new Date();
+                hoje.setHours(0, 0, 0, 0);
+                const dataLimite7Dias = new Date();
+                dataLimite7Dias.setDate(hoje.getDate() + 7);
+
+                const proximos7Dias = reservas.filter(res => {
+                    const dataReserva = new Date(res.data + 'T00:00:00');
+                    return dataReserva >= hoje && dataReserva <= dataLimite7Dias && res.status !== 'Cancelado';
+                }).length;
+
+                totalReservasElement.textContent = total;
+                totalConfirmadasElement.textContent = confirmadas;
+                totalCanceladasElement.textContent = canceladas;
+                reservas7diasElement.textContent = proximos7Dias;
+
+                if (proximos7Dias > 0) {
+                    reservas7diasCard.classList.add('alerta-vermelho');
+                } else {
+                    reservas7diasCard.classList.remove('alerta-vermelho');
+                }
+            }
+
             function renderizarTabela() {
                 tabelaReservasBody.innerHTML = '';
                 const filtroStatus = filtroStatusSelect.value;
                 const dataInicio = dataInicioInput.value;
                 const dataFim = dataFimInput.value;
-                const termoPesquisa = filtroPesquisaInput.value.toLowerCase(); // NOVO: Obtém o termo de pesquisa
+                const termoPesquisa = filtroPesquisaInput.value.toLowerCase();
                 
                 let reservasFiltradas = reservas.filter(reserva => {
                     let statusValido = false;
@@ -561,7 +709,7 @@
                         statusValido = reserva.status === 'Confirmado';
                     } else if (filtroStatus === 'cancelado') {
                         statusValido = reserva.status === 'Cancelado';
-                    } else { // 'todos'
+                    } else { 
                         statusValido = true;
                     }
                     
@@ -569,10 +717,11 @@
                     const dataInicioValida = !dataInicio || dataReserva >= new Date(dataInicio + 'T00:00:00');
                     const dataFimValida = !dataFim || dataReserva <= new Date(dataFim + 'T00:00:00');
                     
-                    // NOVO: Validação de pesquisa
                     const pesquisaValida = termoPesquisa === '' ||
                         reserva.responsavel.toLowerCase().includes(termoPesquisa) ||
-                        reserva.descricao.toLowerCase().includes(termoPesquisa);
+                        reserva.descricao.toLowerCase().includes(termoPesquisa) ||
+                        (reserva.ultimoUsuario && reserva.ultimoUsuario.toLowerCase().includes(termoPesquisa)) ||
+                        (reserva.observacoes && reserva.observacoes.toLowerCase().includes(termoPesquisa));
 
                     return statusValido && dataInicioValida && dataFimValida && pesquisaValida;
                 });
@@ -581,7 +730,6 @@
                     const novaLinha = document.createElement('tr');
                     novaLinha.dataset.id = reserva.id;
                     
-                    // Adiciona a classe de cor da linha
                     if (reserva.status === 'Reservado') {
                         novaLinha.classList.add('reservado-row');
                     } else if (reserva.status === 'Confirmado') {
@@ -589,12 +737,17 @@
                     } else if (reserva.status === 'Cancelado') {
                         novaLinha.classList.add('cancelado-row');
                     }
+                    
+                    const numeroLimpo = reserva.contato.replace(/\D/g, '');
 
                     novaLinha.innerHTML = `
                         <td>${formatarData(reserva.data)}</td>
                         <td>${reserva.descricao}</td>
                         <td>${reserva.responsavel}</td>
-                        <td>${reserva.contato}</td>
+                        <td>
+                            <a href="https://wa.me/55${numeroLimpo}" target="_blank">${reserva.contato}</a>
+                        </td>
+                        <td>${reserva.observacoes || ''}</td>
                         <td>
                             <select class="status-select">
                                 <option value="Reservado" ${reserva.status === 'Reservado' ? 'selected' : ''}>Reservado</option>
@@ -603,8 +756,12 @@
                             </select>
                         </td>
                         <td>
-                            <button class="btn-editar">Editar</button>
-                            <button class="btn-excluir">Excluir</button> </td>
+                            ${reserva.ultimoUsuario || 'N/A'}
+                            <div style="margin-top: 5px; display: flex; gap: 5px; justify-content: center;">
+                                <button class="btn-editar">Editar</button>
+                                <button class="btn-excluir">Excluir</button>
+                            </div>
+                        </td>
                     `;
                     
                     tabelaReservasBody.appendChild(novaLinha);
@@ -616,7 +773,6 @@
                         const novoStatus = e.target.value;
                         const row = e.target.closest('tr');
                         
-                        // Remove todas as classes de cor e adiciona a nova
                         row.classList.remove('reservado-row', 'confirmado-row', 'cancelado-row');
                         if (novoStatus === 'Reservado') {
                             row.classList.add('reservado-row');
