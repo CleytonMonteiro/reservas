@@ -77,11 +77,13 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap; /* Permite que os itens quebrem a linha em telas menores */
         }
 
         .filtro-item {
             flex: 1;
             margin-right: 10px;
+            margin-bottom: 10px;
         }
 
         .filtro-item:last-child {
@@ -174,17 +176,21 @@
             display: none; /* Inicia escondida */
         }
         
-        .btn-editar, .btn-cancelar-edicao {
+        .btn-editar, .btn-cancelar-edicao, .btn-excluir {
             padding: 5px 10px;
             border: none;
             cursor: pointer;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .btn-editar {
             background-color: #ffc107;
             color: #000;
+        }
+        .btn-excluir {
+            background-color: #dc3545;
+            color: #fff;
         }
 
         .btn-cancelar-edicao {
@@ -231,6 +237,10 @@
         <hr>
 
         <div class="filtros-container">
+             <div class="filtro-item">
+                <label for="filtro-pesquisa">Pesquisar:</label>
+                <input type="text" id="filtro-pesquisa" placeholder="Buscar por responsável ou descrição">
+            </div>
             <div class="filtro-item">
                 <label for="filtro-status">Filtrar por Status:</label>
                 <select id="filtro-status">
@@ -286,6 +296,7 @@
             const filtroStatusSelect = document.getElementById('filtro-status');
             const dataInicioInput = document.getElementById('data-inicio');
             const dataFimInput = document.getElementById('data-fim');
+            const filtroPesquisaInput = document.getElementById('filtro-pesquisa'); // NOVO: Campo de pesquisa
             const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
             const fecharPaginaBtn = document.getElementById('fechar-pagina-btn');
             const mensagemSucesso = document.getElementById('mensagem-sucesso');
@@ -339,6 +350,7 @@
                 }
 
                 const dataInput = document.getElementById('data');
+                const descricaoInput = document.getElementById('descricao');
                 const dataSelecionada = new Date(dataInput.value + 'T00:00:00');
                 const dataAtual = new Date();
                 dataAtual.setHours(0, 0, 0, 0);
@@ -348,9 +360,22 @@
                     return;
                 }
 
+                // VALIDAÇÃO DE CONFLITO ATUALIZADA
+                const conflitoExistente = reservas.some(reserva => 
+                    reserva.data === dataInput.value &&
+                    reserva.descricao.toLowerCase() === descricaoInput.value.toLowerCase() &&
+                    reserva.status === 'Confirmado' &&
+                    (!reservaParaEditar || reserva.id !== reservaParaEditar.id)
+                );
+
+                if (conflitoExistente) {
+                    alert('Já existe uma reserva CONFIRMADA para esta data e descrição. Por favor, escolha outra.');
+                    return;
+                }
+
                 const dadosReserva = {
                     data: dataInput.value,
-                    descricao: document.getElementById('descricao').value,
+                    descricao: descricaoInput.value,
                     responsavel: document.getElementById('responsavel').value,
                     contato: document.getElementById('contato').value,
                     ultimoUsuario: usuarioInput.value
@@ -402,6 +427,7 @@
             filtroStatusSelect.addEventListener('change', renderizarTabela);
             dataInicioInput.addEventListener('change', renderizarTabela);
             dataFimInput.addEventListener('change', renderizarTabela);
+            filtroPesquisaInput.addEventListener('input', renderizarTabela); // NOVO: Listener para o campo de pesquisa
 
             gerarPdfBtn.addEventListener('click', () => {
                 const tabelaParaPdf = document.getElementById('tabela-para-pdf');
@@ -451,11 +477,20 @@
                 window.close();
             });
             
-            // Adiciona um listener para os botões de editar na tabela
+            // Adiciona um listener para os botões de editar e excluir na tabela
             tabelaReservasBody.addEventListener('click', (e) => {
                 if (e.target.classList.contains('btn-editar')) {
                     const idReserva = e.target.closest('tr').dataset.id;
                     editarReserva(idReserva);
+                }
+                 // NOVO: Ação de exclusão
+                if (e.target.classList.contains('btn-excluir')) {
+                    const idReserva = e.target.closest('tr').dataset.id;
+                    if (confirm("Tem certeza que deseja excluir esta reserva? Esta ação não pode ser desfeita.")) {
+                        reservasRef.child(idReserva).remove()
+                            .then(() => mostrarMensagemSucesso("Reserva excluída com sucesso!"))
+                            .catch(error => console.error("Erro ao excluir reserva: ", error));
+                    }
                 }
             });
 
@@ -514,6 +549,7 @@
                 const filtroStatus = filtroStatusSelect.value;
                 const dataInicio = dataInicioInput.value;
                 const dataFim = dataFimInput.value;
+                const termoPesquisa = filtroPesquisaInput.value.toLowerCase(); // NOVO: Obtém o termo de pesquisa
                 
                 let reservasFiltradas = reservas.filter(reserva => {
                     let statusValido = false;
@@ -532,8 +568,13 @@
                     const dataReserva = new Date(reserva.data + 'T00:00:00');
                     const dataInicioValida = !dataInicio || dataReserva >= new Date(dataInicio + 'T00:00:00');
                     const dataFimValida = !dataFim || dataReserva <= new Date(dataFim + 'T00:00:00');
+                    
+                    // NOVO: Validação de pesquisa
+                    const pesquisaValida = termoPesquisa === '' ||
+                        reserva.responsavel.toLowerCase().includes(termoPesquisa) ||
+                        reserva.descricao.toLowerCase().includes(termoPesquisa);
 
-                    return statusValido && dataInicioValida && dataFimValida;
+                    return statusValido && dataInicioValida && dataFimValida && pesquisaValida;
                 });
 
                 reservasFiltradas.forEach(reserva => {
@@ -563,7 +604,7 @@
                         </td>
                         <td>
                             <button class="btn-editar">Editar</button>
-                        </td>
+                            <button class="btn-excluir">Excluir</button> </td>
                     `;
                     
                     tabelaReservasBody.appendChild(novaLinha);
