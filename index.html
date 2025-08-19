@@ -6,6 +6,9 @@
     <title>Cadastro de Reservas do Clube</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
     
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,6 +17,7 @@
             margin: 0;
             padding: 20px;
         }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -22,23 +26,28 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
+
         h1, h2 {
             text-align: center;
             color: #333;
         }
+
         hr {
             border: 0;
             border-top: 1px solid #eee;
             margin: 20px 0;
         }
+
         .input-group {
             margin-bottom: 15px;
         }
+
         .input-group label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
         }
+
         .input-group input {
             width: 100%;
             padding: 8px;
@@ -46,6 +55,7 @@
             border: 1px solid #ccc;
             border-radius: 4px;
         }
+        
         #btn-form-reserva {
             width: 100%;
             padding: 10px;
@@ -57,78 +67,97 @@
             cursor: pointer;
             margin-top: 10px;
         }
+
         #btn-form-reserva:hover {
             background-color: #218838;
         }
+
         .filtros-container {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
         }
+
         .filtro-item {
             flex: 1;
             margin-right: 10px;
         }
+
         .filtro-item:last-child {
             margin-right: 0;
         }
+        
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
         }
+
         table, th, td {
             border: 1px solid #ddd;
         }
+
         th, td {
             padding: 12px;
             text-align: left;
         }
+
         th {
             background-color: #f2f2f2;
             color: #333;
         }
+
         .status-select {
             width: 100%;
             padding: 6px;
             border-radius: 4px;
             border: 1px solid #ccc;
         }
+
         .status-reservado {
             color: #007bff;
             font-weight: bold;
         }
+
         .status-confirmado {
             color: #28a745;
             font-weight: bold;
         }
+
         .status-cancelado {
             color: #dc3545;
             font-weight: bold;
         }
+        
         .botoes-acao {
             display: flex;
             justify-content: space-between;
             gap: 10px;
             margin-top: 20px;
         }
+
         .botoes-acao button {
             width: 100%;
             margin-top: 0;
         }
+
         .btn-pdf {
             background-color: #007bff;
         }
+
         .btn-pdf:hover {
             background-color: #0056b3;
         }
+
         .btn-fechar {
             background-color: #6c757d;
         }
+
         .btn-fechar:hover {
             background-color: #5a6268;
         }
+
         .mensagem-sucesso {
             background-color: #d4edda;
             color: #155724;
@@ -137,8 +166,9 @@
             border-radius: 4px;
             margin-bottom: 20px;
             text-align: center;
-            display: none;
+            display: none; /* Inicia escondida */
         }
+        
         .btn-editar, .btn-cancelar-edicao {
             padding: 5px 10px;
             border: none;
@@ -146,10 +176,12 @@
             border-radius: 4px;
             font-size: 14px;
         }
+
         .btn-editar {
             background-color: #ffc107;
             color: #000;
         }
+
         .btn-cancelar-edicao {
             background-color: #dc3545;
             color: #fff;
@@ -161,9 +193,11 @@
 
     <div class="container">
         <h1>Cadastro de Reservas</h1>
+
         <div id="mensagem-sucesso" class="mensagem-sucesso">
             Reserva adicionada com sucesso!
         </div>
+
         <form id="form-reserva">
             <div class="input-group">
                 <label for="data">Data:</label>
@@ -181,14 +215,12 @@
                 <label for="contato">Contato:</label>
                 <input type="text" id="contato" placeholder="(99) 99999-9999" required maxlength="15">
             </div>
-            <div class="input-group">
-                <label for="usuario">Seu Nome:</label>
-                <input type="text" id="usuario" placeholder="Seu Nome" required>
-            </div>
             <button id="btn-form-reserva" type="submit">Adicionar Reserva</button>
             <button id="btn-cancelar-edicao" class="btn-cancelar-edicao" style="display:none;" type="button">Cancelar Edição</button>
         </form>
+
         <hr>
+
         <div class="filtros-container">
             <div class="filtro-item">
                 <label for="filtro-status">Filtrar por Status:</label>
@@ -209,7 +241,9 @@
                 <input type="date" id="data-fim">
             </div>
         </div>
+
         <h2>Reservas Cadastradas</h2>
+        
         <div id="tabela-para-pdf">
             <table id="tabela-reservas">
                 <thead>
@@ -222,15 +256,14 @@
                         <th>Ações</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody>
+                    </tbody>
             </table>
         </div>
+        
         <div class="botoes-acao">
             <button id="gerar-pdf-btn" class="btn-pdf">Gerar PDF</button>
             <button id="fechar-pagina-btn" class="btn-fechar">Fechar Página</button>
-        </div>
-        <div style="text-align: right; font-size: 14px; margin-top: 15px;">
-            <p id="ultimo-usuario-info"></p>
         </div>
     </div>
 
@@ -247,125 +280,117 @@
             const btnFormReserva = document.getElementById('btn-form-reserva');
             const btnCancelarEdicao = document.getElementById('btn-cancelar-edicao');
             const contatoInput = document.getElementById('contato');
-            const usuarioInput = document.getElementById('usuario');
-            const ultimoUsuarioInfo = document.getElementById('ultimo-usuario-info');
             
             let reservaParaEditar = null;
-    
-            // --- Funções para requisições ao Backend Python ---
-    
-            async function fetchReservas() {
-                try {
-                    const response = await fetch('/api/reservas');
-                    if (!response.ok) {
-                        throw new Error('Erro ao buscar as reservas.');
-                    }
-                    const reservas = await response.json();
-                    ordenarReservas(reservas);
-                    renderizarTabela(reservas);
-                    return reservas;
-                } catch (error) {
-                    console.error("Erro:", error);
-                    alert("Não foi possível carregar as reservas. Verifique se o servidor Python está rodando.");
-                }
-            }
+
+            // Configuração do Firebase com suas chaves
+            const firebaseConfig = {
+                apiKey: "AIzaSyDut5CV-mDqnuKV0MH8MM2ivOQMP-AF94E",
+                authDomain: "reserva-b5ff4.firebaseapp.com",
+                databaseURL: "https://reserva-b5ff4-default-rtdb.firebaseio.com",
+                projectId: "reserva-b5ff4",
+                storageBucket: "reserva-b5ff4.firebasestorage.app",
+                messagingSenderId: "540617636797",
+                appId: "1:540617636797:web:5081ca29f77cb9c5fab0d4"
+            };
+
+            firebase.initializeApp(firebaseConfig);
+            const database = firebase.database();
+            const reservasRef = database.ref('reservas');
             
-            async function salvarReserva(dados) {
-                const url = reservaParaEditar ? `/api/reservas/${reservaParaEditar.id}` : '/api/reservas';
-                const method = reservaParaEditar ? 'PUT' : 'POST';
-    
-                try {
-                    const response = await fetch(url, {
-                        method: method,
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(dados)
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Erro ao salvar a reserva.');
-                    }
-                    
-                    const resultado = await response.json();
-                    mostrarMensagemSucesso(resultado.message);
-                    
-                    resetarFormulario();
-                    fetchReservas();
-                } catch (error) {
-                    console.error("Erro:", error);
-                    alert("Ocorreu um erro ao salvar a reserva. Tente novamente.");
+            let reservas = [];
+
+            reservasRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                reservas = [];
+                for (let key in data) {
+                    reservas.push({ ...data[key], id: key });
                 }
-            }
-    
-            async function atualizarStatusReserva(id, novoStatus) {
-                try {
-                    const response = await fetch(`/api/reservas/status/${id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: novoStatus })
-                    });
-    
-                    if (!response.ok) {
-                        throw new Error('Erro ao atualizar o status.');
-                    }
-    
-                    console.log("Status atualizado com sucesso!");
-                    fetchReservas();
-                } catch (error) {
-                    console.error("Erro:", error);
-                }
-            }
-    
-            // --- Lógica da Aplicação ---
-    
+                ordenarReservas();
+                renderizarTabela();
+            });
+
             formReserva.addEventListener('submit', (e) => {
                 e.preventDefault();
-    
-                if (!contatoInput.value || !usuarioInput.value) {
-                    alert('Os campos Contato e Seu Nome são obrigatórios.');
-                    return;
+
+                // Validação do campo de contato
+                if (!contatoInput.value) {
+                    alert('O campo Contato é obrigatório.');
+                    return; // Impede o envio do formulário
                 }
-    
+
                 const dataInput = document.getElementById('data');
                 const dataSelecionada = new Date(dataInput.value + 'T00:00:00');
                 const dataAtual = new Date();
                 dataAtual.setHours(0, 0, 0, 0);
-    
-                if (dataSelecionada < dataAtual && !reservaParaEditar) {
+
+                if (dataSelecionada < dataAtual) {
                     alert('Não é possível adicionar reservas em uma data que já passou.');
                     return;
                 }
-    
+
                 const dadosReserva = {
                     data: dataInput.value,
                     descricao: document.getElementById('descricao').value,
                     responsavel: document.getElementById('responsavel').value,
-                    contato: contatoInput.value,
-                    ultimoUsuario: usuarioInput.value
+                    contato: document.getElementById('contato').value,
                 };
-    
-                salvarReserva(dadosReserva);
+
+                if (reservaParaEditar) {
+                    // Modo de edição: atualiza a reserva existente
+                    reservasRef.child(reservaParaEditar.id).update(dadosReserva)
+                        .then(() => {
+                            mostrarMensagemSucesso("Reserva atualizada com sucesso!");
+                            formReserva.reset();
+                            resetarFormulario();
+                        })
+                        .catch(error => console.error("Erro ao atualizar reserva: ", error));
+
+                } else {
+                    // Modo de adição: adiciona uma nova reserva
+                    dadosReserva.status = 'Reservado';
+                    reservasRef.push(dadosReserva)
+                        .then(() => {
+                            mostrarMensagemSucesso("Reserva adicionada com sucesso!");
+                            formReserva.reset();
+                        })
+                        .catch(error => {
+                            console.error("Erro ao adicionar reserva: ", error);
+                        });
+                }
             });
-    
+
+            // Adiciona o ouvinte de eventos para a máscara
             contatoInput.addEventListener('input', (e) => {
                 let value = e.target.value.replace(/\D/g, '');
                 let formattedValue = '';
-                if (value.length > 0) formattedValue = '(' + value.substring(0, 2);
-                if (value.length >= 3) formattedValue += ') ' + value.substring(2, 7);
-                if (value.length >= 8) formattedValue += '-' + value.substring(7, 11);
+
+                if (value.length > 0) {
+                    formattedValue = '(' + value.substring(0, 2);
+                }
+                if (value.length >= 3) {
+                    formattedValue += ') ' + value.substring(2, 7);
+                }
+                if (value.length >= 8) {
+                    formattedValue += '-' + value.substring(7, 11);
+                }
+
                 e.target.value = formattedValue;
             });
-    
-            filtroStatusSelect.addEventListener('change', () => fetchReservas());
-            dataInicioInput.addEventListener('change', () => fetchReservas());
-            dataFimInput.addEventListener('change', () => fetchReservas());
-            
+
+
+            filtroStatusSelect.addEventListener('change', renderizarTabela);
+            dataInicioInput.addEventListener('change', renderizarTabela);
+            dataFimInput.addEventListener('change', renderizarTabela);
+
             gerarPdfBtn.addEventListener('click', () => {
+                // Esconde a coluna inteira de Ações
                 const thAcoes = document.querySelector('th:last-child');
                 const tdAcoes = document.querySelectorAll('td:last-child');
                 
-                if (thAcoes) thAcoes.style.display = 'none';
+                thAcoes.style.display = 'none';
                 tdAcoes.forEach(td => td.style.display = 'none');
-    
+
                 const element = document.getElementById('tabela-para-pdf');
                 html2pdf(element, {
                     margin: 10,
@@ -374,43 +399,42 @@
                     html2canvas: { scale: 2 },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 }).then(() => {
-                    if (thAcoes) thAcoes.style.display = '';
+                    // Mostra a coluna de Ações novamente após a geração do PDF
+                    thAcoes.style.display = '';
                     tdAcoes.forEach(td => td.style.display = '');
                 });
             });
-    
+
             fecharPaginaBtn.addEventListener('click', () => {
                 window.close();
             });
             
+            // Adiciona um listener para os botões de editar na tabela
             tabelaReservasBody.addEventListener('click', (e) => {
                 if (e.target.classList.contains('btn-editar')) {
                     const idReserva = e.target.closest('tr').dataset.id;
                     editarReserva(idReserva);
                 }
             });
-    
+
+            // Adiciona um listener para o botão de cancelar edição
             btnCancelarEdicao.addEventListener('click', () => {
                 resetarFormulario();
             });
-    
-            // Funções Auxiliares
-            
+
+            // Nova função para formatar a data
             function formatarData(dataString) {
                 const [ano, mes, dia] = dataString.split('-');
                 return `${dia}-${mes}-${ano}`;
             }
-            
-            async function editarReserva(id) {
-                const reservas = await fetchReservas();
-                reservaParaEditar = reservas.find(res => res.id == id);
-                
+
+            function editarReserva(id) {
+                reservaParaEditar = reservas.find(res => res.id === id);
                 if (reservaParaEditar) {
                     document.getElementById('data').value = reservaParaEditar.data;
                     document.getElementById('descricao').value = reservaParaEditar.descricao;
                     document.getElementById('responsavel').value = reservaParaEditar.responsavel;
                     document.getElementById('contato').value = reservaParaEditar.contato;
-                    document.getElementById('usuario').value = reservaParaEditar.ultimoUsuario || '';
                     
                     btnFormReserva.textContent = "Salvar Alterações";
                     btnFormReserva.style.backgroundColor = "#ffc107";
@@ -418,7 +442,7 @@
                     btnCancelarEdicao.style.display = "inline-block";
                 }
             }
-            
+
             function resetarFormulario() {
                 formReserva.reset();
                 btnFormReserva.textContent = "Adicionar Reserva";
@@ -427,7 +451,7 @@
                 btnCancelarEdicao.style.display = "none";
                 reservaParaEditar = null;
             }
-    
+
             function mostrarMensagemSucesso(mensagem) {
                 mensagemSucesso.textContent = mensagem;
                 mensagemSucesso.style.display = 'block';
@@ -435,31 +459,40 @@
                     mensagemSucesso.style.display = 'none';
                 }, 3000);
             }
-    
-            function ordenarReservas(reservas) {
-                reservas.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+            function ordenarReservas() {
+                reservas.sort((a, b) => {
+                    return new Date(a.data) - new Date(b.data);
+                });
             }
-    
-            function renderizarTabela(reservas) {
+
+            function renderizarTabela() {
                 tabelaReservasBody.innerHTML = '';
                 const filtroStatus = filtroStatusSelect.value;
                 const dataInicio = dataInicioInput.value;
                 const dataFim = dataFimInput.value;
                 
                 let reservasFiltradas = reservas.filter(reserva => {
-                    let statusValido = (filtroStatus === 'ativos' && (reserva.status === 'Reservado' || reserva.status === 'Confirmado')) ||
-                                       (filtroStatus === 'reservado' && reserva.status === 'Reservado') ||
-                                       (filtroStatus === 'confirmado' && reserva.status === 'Confirmado') ||
-                                       (filtroStatus === 'cancelado' && reserva.status === 'Cancelado') ||
-                                       (filtroStatus === 'todos');
-                                       
+                    let statusValido = false;
+                    if (filtroStatus === 'ativos') {
+                        statusValido = reserva.status === 'Reservado' || reserva.status === 'Confirmado';
+                    } else if (filtroStatus === 'reservado') {
+                        statusValido = reserva.status === 'Reservado';
+                    } else if (filtroStatus === 'confirmado') {
+                        statusValido = reserva.status === 'Confirmado';
+                    } else if (filtroStatus === 'cancelado') {
+                        statusValido = reserva.status === 'Cancelado';
+                    } else { // 'todos'
+                        statusValido = true;
+                    }
+                    
                     const dataReserva = new Date(reserva.data + 'T00:00:00');
                     const dataInicioValida = !dataInicio || dataReserva >= new Date(dataInicio + 'T00:00:00');
                     const dataFimValida = !dataFim || dataReserva <= new Date(dataFim + 'T00:00:00');
-    
+
                     return statusValido && dataInicioValida && dataFimValida;
                 });
-    
+
                 reservasFiltradas.forEach(reserva => {
                     const novaLinha = document.createElement('tr');
                     novaLinha.dataset.id = reserva.id;
@@ -475,39 +508,35 @@
                                 <option value="Cancelado" ${reserva.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
                             </select>
                         </td>
-                        <td><button class="btn-editar">Editar</button></td>
+                        <td>
+                            <button class="btn-editar">Editar</button>
+                        </td>
                     `;
                     
                     tabelaReservasBody.appendChild(novaLinha);
-    
+
                     const selectStatus = novaLinha.querySelector('.status-select');
                     atualizarEstiloStatus(selectStatus, reserva.status);
+
                     selectStatus.addEventListener('change', (e) => {
                         const novoStatus = e.target.value;
-                        atualizarStatusReserva(reserva.id, novoStatus);
+                        reservasRef.child(reserva.id).update({ status: novoStatus })
+                            .then(() => console.log("Status atualizado com sucesso!"))
+                            .catch(error => console.error("Erro ao atualizar status: ", error));
                     });
                 });
-                atualizarUltimoUsuarioNaPagina(reservas);
             }
-            
+
             function atualizarEstiloStatus(selectElement, status) {
                 selectElement.className = 'status-select';
-                if (status === 'Reservado') selectElement.classList.add('status-reservado');
-                else if (status === 'Confirmado') selectElement.classList.add('status-confirmado');
-                else if (status === 'Cancelado') selectElement.classList.add('status-cancelado');
-            }
-            
-            function atualizarUltimoUsuarioNaPagina(reservas) {
-                const ultimaReserva = reservas[reservas.length - 1];
-                if (ultimaReserva && ultimaReserva.ultimoUsuario) {
-                    ultimoUsuarioInfo.textContent = `Última alteração feita por: ${ultimaReserva.ultimoUsuario}`;
-                } else {
-                    ultimoUsuarioInfo.textContent = '';
+                if (status === 'Reservado') {
+                    selectElement.classList.add('status-reservado');
+                } else if (status === 'Confirmado') {
+                    selectElement.classList.add('status-confirmado');
+                } else if (status === 'Cancelado') {
+                    selectElement.classList.add('status-cancelado');
                 }
             }
-            
-            // Inicia o carregamento das reservas
-            fetchReservas();
         });
     </script>
 </body>
