@@ -215,6 +215,10 @@
                 <label for="contato">Contato:</label>
                 <input type="text" id="contato" placeholder="(99) 99999-9999" required maxlength="15">
             </div>
+            <div class="input-group">
+                <label for="usuario">Quem fez a reserva:</label>
+                <input type="text" id="usuario" placeholder="Quem fez a reserva" required>
+            </div>
             <button id="btn-form-reserva" type="submit">Adicionar Reserva</button>
             <button id="btn-cancelar-edicao" class="btn-cancelar-edicao" style="display:none;" type="button">Cancelar Edição</button>
         </form>
@@ -265,6 +269,9 @@
             <button id="gerar-pdf-btn" class="btn-pdf">Gerar PDF</button>
             <button id="fechar-pagina-btn" class="btn-fechar">Fechar Página</button>
         </div>
+        <div style="text-align: right; font-size: 14px; margin-top: 15px;">
+            <p id="ultimo-usuario-info"></p>
+        </div>
     </div>
 
     <script>
@@ -280,6 +287,8 @@
             const btnFormReserva = document.getElementById('btn-form-reserva');
             const btnCancelarEdicao = document.getElementById('btn-cancelar-edicao');
             const contatoInput = document.getElementById('contato');
+            const usuarioInput = document.getElementById('usuario');
+            const ultimoUsuarioInfo = document.getElementById('ultimo-usuario-info');
             
             let reservaParaEditar = null;
 
@@ -308,15 +317,20 @@
                 }
                 ordenarReservas();
                 renderizarTabela();
+                atualizarUltimoUsuarioNaPagina();
             });
 
             formReserva.addEventListener('submit', (e) => {
                 e.preventDefault();
 
-                // Validação do campo de contato
+                // Validação do campo de contato e usuário
                 if (!contatoInput.value) {
                     alert('O campo Contato é obrigatório.');
-                    return; // Impede o envio do formulário
+                    return;
+                }
+                if (!usuarioInput.value) {
+                    alert('O campo Quem fez a reserva é obrigatório.');
+                    return;
                 }
 
                 const dataInput = document.getElementById('data');
@@ -334,6 +348,7 @@
                     descricao: document.getElementById('descricao').value,
                     responsavel: document.getElementById('responsavel').value,
                     contato: document.getElementById('contato').value,
+                    ultimoUsuario: usuarioInput.value
                 };
 
                 if (reservaParaEditar) {
@@ -384,6 +399,11 @@
             dataFimInput.addEventListener('change', renderizarTabela);
 
             gerarPdfBtn.addEventListener('click', () => {
+                const tabelaParaPdf = document.getElementById('tabela-para-pdf');
+                
+                // Define temporariamente a fonte para o PDF
+                tabelaParaPdf.style.fontSize = '12px';
+
                 // Esconde a coluna inteira de Ações
                 const thAcoes = document.querySelector('th:last-child');
                 const tdAcoes = document.querySelectorAll('td:last-child');
@@ -391,17 +411,17 @@
                 thAcoes.style.display = 'none';
                 tdAcoes.forEach(td => td.style.display = 'none');
 
-                const element = document.getElementById('tabela-para-pdf');
-                html2pdf(element, {
+                html2pdf(tabelaParaPdf, {
                     margin: 10,
                     filename: 'reservas_clube.pdf',
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2 },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 }).then(() => {
-                    // Mostra a coluna de Ações novamente após a geração do PDF
+                    // Mostra a coluna de Ações e restaura a fonte após a geração do PDF
                     thAcoes.style.display = '';
                     tdAcoes.forEach(td => td.style.display = '');
+                    tabelaParaPdf.style.fontSize = ''; // Restaura o tamanho da fonte
                 });
             });
 
@@ -435,6 +455,7 @@
                     document.getElementById('descricao').value = reservaParaEditar.descricao;
                     document.getElementById('responsavel').value = reservaParaEditar.responsavel;
                     document.getElementById('contato').value = reservaParaEditar.contato;
+                    document.getElementById('usuario').value = reservaParaEditar.ultimoUsuario || '';
                     
                     btnFormReserva.textContent = "Salvar Alterações";
                     btnFormReserva.style.backgroundColor = "#ffc107";
@@ -536,6 +557,19 @@
                 } else if (status === 'Cancelado') {
                     selectElement.classList.add('status-cancelado');
                 }
+            }
+            
+            function atualizarUltimoUsuarioNaPagina() {
+                reservasRef.orderByKey().limitToLast(1).once('value', (snapshot) => {
+                    const ultimoRegistro = snapshot.val();
+                    if (ultimoRegistro) {
+                        const ultimoId = Object.keys(ultimoRegistro)[0];
+                        const dados = ultimoRegistro[ultimoId];
+                        if (dados.ultimoUsuario) {
+                            ultimoUsuarioInfo.textContent = `Última alteração feita por: ${dados.ultimoUsuario}`;
+                        }
+                    }
+                });
             }
         });
     </script>
