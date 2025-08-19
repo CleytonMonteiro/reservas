@@ -108,6 +108,11 @@
             color: #333;
         }
 
+        /* Classes de cores para as linhas da tabela */
+        .confirmado-row { background-color: #d4edda; } /* Verde claro */
+        .reservado-row { background-color: #fff3cd; }   /* Laranja claro */
+        .cancelado-row { background-color: #e9ecef; }   /* Cinza claro */
+        
         .status-select {
             width: 100%;
             padding: 6px;
@@ -401,15 +406,25 @@
             gerarPdfBtn.addEventListener('click', () => {
                 const tabelaParaPdf = document.getElementById('tabela-para-pdf');
                 
+                // Salva o estado atual das cores das linhas
+                const linhas = document.querySelectorAll('#tabela-reservas tbody tr');
+                const estadosCores = Array.from(linhas).map(linha => {
+                    return {
+                        element: linha,
+                        corClass: Array.from(linha.classList).find(cls => cls.endsWith('-row'))
+                    };
+                });
+
+                // Remove as classes de cor e esconde a coluna de Ações
+                linhas.forEach(linha => linha.classList.remove('reservado-row', 'confirmado-row', 'cancelado-row'));
+                const thAcoes = document.querySelector('th:last-child');
+                const tdAcoes = document.querySelectorAll('td:last-child');
+                thAcoes.style.display = 'none';
+                tdAcoes.forEach(td => td.style.display = 'none');
+                
                 // Define temporariamente a fonte para o PDF
                 tabelaParaPdf.style.fontSize = '12px';
 
-                // Esconde a coluna inteira de Ações
-                const thAcoes = document.querySelector('th:last-child');
-                const tdAcoes = document.querySelectorAll('td:last-child');
-                
-                thAcoes.style.display = 'none';
-                tdAcoes.forEach(td => td.style.display = 'none');
 
                 html2pdf(tabelaParaPdf, {
                     margin: 10,
@@ -418,10 +433,17 @@
                     html2canvas: { scale: 2 },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 }).then(() => {
-                    // Mostra a coluna de Ações e restaura a fonte após a geração do PDF
+                    // Restaura a fonte e a coluna de Ações
+                    tabelaParaPdf.style.fontSize = '';
                     thAcoes.style.display = '';
                     tdAcoes.forEach(td => td.style.display = '');
-                    tabelaParaPdf.style.fontSize = ''; // Restaura o tamanho da fonte
+
+                    // Restaura as cores das linhas
+                    estadosCores.forEach(estado => {
+                        if (estado.corClass) {
+                            estado.element.classList.add(estado.corClass);
+                        }
+                    });
                 });
             });
 
@@ -517,6 +539,16 @@
                 reservasFiltradas.forEach(reserva => {
                     const novaLinha = document.createElement('tr');
                     novaLinha.dataset.id = reserva.id;
+                    
+                    // Adiciona a classe de cor da linha
+                    if (reserva.status === 'Reservado') {
+                        novaLinha.classList.add('reservado-row');
+                    } else if (reserva.status === 'Confirmado') {
+                        novaLinha.classList.add('confirmado-row');
+                    } else if (reserva.status === 'Cancelado') {
+                        novaLinha.classList.add('cancelado-row');
+                    }
+
                     novaLinha.innerHTML = `
                         <td>${formatarData(reserva.data)}</td>
                         <td>${reserva.descricao}</td>
@@ -541,6 +573,18 @@
 
                     selectStatus.addEventListener('change', (e) => {
                         const novoStatus = e.target.value;
+                        const row = e.target.closest('tr');
+                        
+                        // Remove todas as classes de cor e adiciona a nova
+                        row.classList.remove('reservado-row', 'confirmado-row', 'cancelado-row');
+                        if (novoStatus === 'Reservado') {
+                            row.classList.add('reservado-row');
+                        } else if (novoStatus === 'Confirmado') {
+                            row.classList.add('confirmado-row');
+                        } else if (novoStatus === 'Cancelado') {
+                            row.classList.add('cancelado-row');
+                        }
+
                         reservasRef.child(reserva.id).update({ status: novoStatus })
                             .then(() => console.log("Status atualizado com sucesso!"))
                             .catch(error => console.error("Erro ao atualizar status: ", error));
