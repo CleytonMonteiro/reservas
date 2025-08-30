@@ -73,22 +73,19 @@
             background-color: #218838;
         }
 
-        /* AJUSTE AQUI: Centraliza e melhora o espaçamento dos filtros */
         .filtros-container {
             display: flex;
-            justify-content: center; /* Centraliza horizontalmente */
+            justify-content: center;
             align-items: center;
             margin-bottom: 20px;
             flex-wrap: wrap;
-            gap: 15px; /* Adiciona um espaço fixo entre os itens */
+            gap: 15px;
         }
 
         .filtro-item {
-            /* Removendo flex: 1 para evitar que os itens se expandam e criem grandes espaços */
             margin-bottom: 10px;
         }
         
-        /* NOVO: Wrapper para a tabela que permite a rolagem */
         .tabela-wrapper {
             overflow-x: auto;
         }
@@ -128,28 +125,25 @@
         .confirmado-row { background-color: #d4edda; }
         .reservado-row { background-color: #fff3cd; }
         .cancelado-row { background-color: #e9ecef; }
+        .realizado-row { background-color: #e2e3e5; } /* NOVO */
         
-        .status-select {
-            width: 100%;
-            padding: 6px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
-
-        .status-reservado {
-            color: #007bff;
+        /* NOVO: Estilos para o novo "rótulo" de status */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 15px;
             font-weight: bold;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            min-width: 80px;
+            box-sizing: border-box;
+            user-select: none;
         }
-
-        .status-confirmado {
-            color: #28a745;
-            font-weight: bold;
-        }
-
-        .status-cancelado {
-            color: #dc3545;
-            font-weight: bold;
-        }
+        .badge-reservado { background-color: #007bff; }
+        .badge-confirmado { background-color: #28a745; }
+        .badge-cancelado { background-color: #dc3545; }
+        .badge-realizado { background-color: #6c757d; } /* NOVO */
         
         .botoes-acao {
             display: flex;
@@ -240,6 +234,8 @@
             background-color: #f8d7da;
             border-color: #f5c6cb;
             color: #721c24;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.4);
+            font-size: 1.1em;
         }
 
         .resumo-card h3 {
@@ -258,6 +254,34 @@
             font-weight: bold;
             margin: 0;
             color: #333;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            gap: 5px;
+            user-select: none;
+        }
+
+        .page-button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+
+        .page-button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .page-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -331,6 +355,7 @@
                     <option value="ativos">Reservados e Confirmados</option>
                     <option value="reservado">Reservados</option>
                     <option value="confirmado">Confirmados</option>
+                    <option value="realizado">Realizados</option>
                     <option value="cancelado">Cancelados</option>
                     <option value="todos">Todos</option>
                 </select>
@@ -364,6 +389,8 @@
                     </tbody>
             </table>
         </div>
+        
+        <div id="pagination-container" class="pagination-container"></div>
         
         <div class="botoes-acao">
             <button id="gerar-pdf-btn" class="btn-pdf">Gerar PDF</button>
@@ -399,10 +426,12 @@
             const totalCanceladasElement = document.getElementById('total-canceladas');
             const reservas7diasElement = document.getElementById('reservas-7dias');
             const reservas7diasCard = document.getElementById('reservas-7dias-card');
+            const paginationContainer = document.getElementById('pagination-container');
 
             let reservaParaEditar = null;
+            const itemsPerPage = 10;
+            let currentPage = 1;
 
-            // Configuração do Firebase com suas chaves
             const firebaseConfig = {
                 apiKey: "AIzaSyDut5CV-mDqnuKV0MH8MM2ivOQMP-AF94E",
                 authDomain: "reserva-b5ff4.firebaseapp.com",
@@ -515,10 +544,22 @@
             });
 
 
-            filtroStatusSelect.addEventListener('change', renderizarTabela);
-            dataInicioInput.addEventListener('change', renderizarTabela);
-            dataFimInput.addEventListener('change', renderizarTabela);
-            filtroPesquisaInput.addEventListener('input', renderizarTabela);
+            filtroStatusSelect.addEventListener('change', () => {
+                currentPage = 1;
+                renderizarTabela();
+            });
+            dataInicioInput.addEventListener('change', () => {
+                currentPage = 1;
+                renderizarTabela();
+            });
+            dataFimInput.addEventListener('change', () => {
+                currentPage = 1;
+                renderizarTabela();
+            });
+            filtroPesquisaInput.addEventListener('input', () => {
+                currentPage = 1;
+                renderizarTabela();
+            });
 
             gerarPdfBtn.addEventListener('click', () => {
                 const tabelaParaPdf = document.getElementById('tabela-para-pdf');
@@ -531,7 +572,7 @@
                     };
                 });
 
-                linhas.forEach(linha => linha.classList.remove('reservado-row', 'confirmado-row', 'cancelado-row'));
+                linhas.forEach(linha => linha.classList.remove('reservado-row', 'confirmado-row', 'cancelado-row', 'realizado-row'));
                 const thAcoes = document.querySelector('th:last-child');
                 const tdAcoes = document.querySelectorAll('td:last-child');
                 thAcoes.style.display = 'none';
@@ -574,7 +615,7 @@
                 const linhas = document.querySelectorAll('#tabela-reservas tbody tr');
                 linhas.forEach(linha => {
                     const celulas = linha.querySelectorAll('td');
-                    const status = linha.querySelector('.status-select').value;
+                    const status = linha.querySelector('.status-select')?.value || linha.querySelector('.status-badge').textContent;
                     const dadosLinha = [
                         celulas[0].textContent,
                         celulas[1].textContent,
@@ -613,6 +654,12 @@
                             .then(() => mostrarMensagemSucesso("Reserva excluída com sucesso!"))
                             .catch(error => console.error("Erro ao excluir reserva: ", error));
                     }
+                }
+                
+                if (e.target.classList.contains('status-badge')) {
+                    const idReserva = e.target.closest('tr').dataset.id;
+                    const cell = e.target.closest('td');
+                    abrirOpcoesStatus(idReserva, cell);
                 }
             });
 
@@ -677,7 +724,8 @@
 
                 const proximos7Dias = reservas.filter(res => {
                     const dataReserva = new Date(res.data + 'T00:00:00');
-                    return dataReserva >= hoje && dataReserva <= dataLimite7Dias && res.status !== 'Cancelado';
+                    const statusAtivo = res.status === 'Reservado' || res.status === 'Confirmado';
+                    return dataReserva >= hoje && dataReserva <= dataLimite7Dias && statusAtivo;
                 }).length;
 
                 totalReservasElement.textContent = total;
@@ -709,6 +757,8 @@
                         statusValido = reserva.status === 'Confirmado';
                     } else if (filtroStatus === 'cancelado') {
                         statusValido = reserva.status === 'Cancelado';
+                    } else if (filtroStatus === 'realizado') {
+                        statusValido = reserva.status === 'Realizado';
                     } else { 
                         statusValido = true;
                     }
@@ -726,7 +776,12 @@
                     return statusValido && dataInicioValida && dataFimValida && pesquisaValida;
                 });
 
-                reservasFiltradas.forEach(reserva => {
+                const totalPaginas = Math.ceil(reservasFiltradas.length / itemsPerPage);
+                const inicio = (currentPage - 1) * itemsPerPage;
+                const fim = inicio + itemsPerPage;
+                const reservasPaginadas = reservasFiltradas.slice(inicio, fim);
+                
+                reservasPaginadas.forEach(reserva => {
                     const novaLinha = document.createElement('tr');
                     novaLinha.dataset.id = reserva.id;
                     
@@ -736,6 +791,8 @@
                         novaLinha.classList.add('confirmado-row');
                     } else if (reserva.status === 'Cancelado') {
                         novaLinha.classList.add('cancelado-row');
+                    } else if (reserva.status === 'Realizado') {
+                        novaLinha.classList.add('realizado-row');
                     }
                     
                     const numeroLimpo = reserva.contato.replace(/\D/g, '');
@@ -749,11 +806,7 @@
                         </td>
                         <td>${reserva.observacoes || ''}</td>
                         <td>
-                            <select class="status-select">
-                                <option value="Reservado" ${reserva.status === 'Reservado' ? 'selected' : ''}>Reservado</option>
-                                <option value="Confirmado" ${reserva.status === 'Confirmado' ? 'selected' : ''}>Confirmado</option>
-                                <option value="Cancelado" ${reserva.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
-                            </select>
+                            <span class="status-badge badge-${reserva.status.toLowerCase()}">${reserva.status}</span>
                         </td>
                         <td>
                             ${reserva.ultimoUsuario || 'N/A'}
@@ -765,39 +818,84 @@
                     `;
                     
                     tabelaReservasBody.appendChild(novaLinha);
-
-                    const selectStatus = novaLinha.querySelector('.status-select');
-                    atualizarEstiloStatus(selectStatus, reserva.status);
-
-                    selectStatus.addEventListener('change', (e) => {
-                        const novoStatus = e.target.value;
-                        const row = e.target.closest('tr');
-                        
-                        row.classList.remove('reservado-row', 'confirmado-row', 'cancelado-row');
-                        if (novoStatus === 'Reservado') {
-                            row.classList.add('reservado-row');
-                        } else if (novoStatus === 'Confirmado') {
-                            row.classList.add('confirmado-row');
-                        } else if (novoStatus === 'Cancelado') {
-                            row.classList.add('cancelado-row');
-                        }
-
-                        reservasRef.child(reserva.id).update({ status: novoStatus })
-                            .then(() => console.log("Status atualizado com sucesso!"))
-                            .catch(error => console.error("Erro ao atualizar status: ", error));
-                    });
                 });
+                
+                renderizarPaginacao(totalPaginas);
             }
 
-            function atualizarEstiloStatus(selectElement, status) {
-                selectElement.className = 'status-select';
-                if (status === 'Reservado') {
-                    selectElement.classList.add('status-reservado');
-                } else if (status === 'Confirmado') {
-                    selectElement.classList.add('status-confirmado');
-                } else if (status === 'Cancelado') {
-                    selectElement.classList.add('status-cancelado');
+            function renderizarPaginacao(totalPaginas) {
+                paginationContainer.innerHTML = '';
+                
+                const prevButton = document.createElement('button');
+                prevButton.textContent = 'Anterior';
+                prevButton.classList.add('page-button');
+                if (currentPage === 1) prevButton.classList.add('disabled');
+                prevButton.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        renderizarTabela();
+                    }
+                });
+                paginationContainer.appendChild(prevButton);
+                
+                for (let i = 1; i <= totalPaginas; i++) {
+                    const pageButton = document.createElement('button');
+                    pageButton.textContent = i;
+                    pageButton.classList.add('page-button');
+                    if (i === currentPage) pageButton.classList.add('active');
+                    pageButton.addEventListener('click', () => {
+                        currentPage = i;
+                        renderizarTabela();
+                    });
+                    paginationContainer.appendChild(pageButton);
                 }
+                
+                const nextButton = document.createElement('button');
+                nextButton.textContent = 'Próximo';
+                nextButton.classList.add('page-button');
+                if (currentPage === totalPaginas) nextButton.classList.add('disabled');
+                nextButton.addEventListener('click', () => {
+                    if (currentPage < totalPaginas) {
+                        currentPage++;
+                        renderizarTabela();
+                    }
+                });
+                paginationContainer.appendChild(nextButton);
+            }
+            
+            function abrirOpcoesStatus(id, cell) {
+                const reserva = reservas.find(res => res.id === id);
+                if (!reserva) return;
+                
+                const statusSelect = document.createElement('select');
+                statusSelect.classList.add('status-select');
+                statusSelect.innerHTML = `
+                    <option value="Reservado" ${reserva.status === 'Reservado' ? 'selected' : ''}>Reservado</option>
+                    <option value="Confirmado" ${reserva.status === 'Confirmado' ? 'selected' : ''}>Confirmado</option>
+                    <option value="Cancelado" ${reserva.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
+                    <option value="Realizado" ${reserva.status === 'Realizado' ? 'selected' : ''}>Realizado</option>
+                `;
+                
+                cell.innerHTML = '';
+                cell.appendChild(statusSelect);
+                statusSelect.focus();
+                
+                statusSelect.addEventListener('change', (e) => {
+                    const novoStatus = e.target.value;
+                    reservasRef.child(reserva.id).update({ status: novoStatus })
+                        .then(() => {
+                            console.log("Status atualizado com sucesso!");
+                        })
+                        .catch(error => console.error("Erro ao atualizar status: ", error));
+                });
+                
+                statusSelect.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        if (!document.activeElement.isEqualNode(statusSelect)) {
+                            renderizarTabela();
+                        }
+                    }, 100);
+                });
             }
             
             function atualizarUltimoUsuarioNaPagina() {
