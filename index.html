@@ -11,8 +11,8 @@
 
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fonte mais moderna */
-            font-size: 13px; /* Levemente maior para leitura */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 13px;
             background-color: #f0f2f5;
             margin: 0;
             padding: 20px;
@@ -53,7 +53,7 @@
 
         .input-group input,
         .input-group textarea,
-        .input-group select { /* Select adicionado */
+        .input-group select {
             width: 100%;
             padding: 10px;
             box-sizing: border-box;
@@ -94,7 +94,7 @@
         .filtros-container {
             display: flex;
             justify-content: center;
-            align-items: flex-end; /* Alinha labels na base */
+            align-items: flex-end;
             margin-bottom: 25px;
             flex-wrap: wrap;
             gap: 15px;
@@ -107,6 +107,15 @@
         .filtro-item {
             display: flex;
             flex-direction: column;
+        }
+
+        /* Estilização específica para inputs dentro dos filtros */
+        .filtro-item input, 
+        .filtro-item select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
         }
         
         /* --- Tabela --- */
@@ -142,22 +151,19 @@
             font-size: 11px;
         }
 
-        /* Larguras das Colunas ajustadas */
         th:nth-child(1), td:nth-child(1) { width: 90px; }  /* Data */
         th:nth-child(2), td:nth-child(2) { width: 18%; } /* Descrição */
         th:nth-child(3), td:nth-child(3) { width: 15%; } /* Responsável */
         th:nth-child(4), td:nth-child(4) { width: 110px; } /* Contato */
         th:nth-child(5), td:nth-child(5) { width: 25%; } /* Observações */
         th:nth-child(6), td:nth-child(6) { width: 100px; text-align: center;} /* Status */
-        th:nth-child(7), td:nth-child(7) { width: 100px; text-align: center;} /* Criador / Ações */
+        th:nth-child(7), td:nth-child(7) { width: 100px; text-align: center;} /* Ações */
 
-        /* Cores das linhas */
         .confirmado-row { background-color: #d4edda; }
         .reservado-row { background-color: #fff3cd; }
-        .cancelado-row { background-color: #f8d7da; } /* Um pouco mais vermelho para destaque */
+        .cancelado-row { background-color: #f8d7da; }
         .realizado-row { background-color: #e2e3e5; }
         
-        /* Badges de Status */
         .status-badge {
             display: inline-block;
             padding: 5px 10px;
@@ -178,7 +184,7 @@
         /* --- Botões de Ação --- */
         .botoes-acao {
             display: flex;
-            justify-content: flex-end; /* Alinha à direita */
+            justify-content: flex-end;
             gap: 10px;
             margin-top: 25px;
         }
@@ -201,7 +207,6 @@
         .btn-fechar { background-color: #6c757d; }
         .btn-fechar:hover { background-color: #5a6268; }
 
-        /* --- Mensagens e Edição --- */
         .mensagem-sucesso {
             background-color: #d4edda;
             color: #155724;
@@ -301,7 +306,7 @@
             color: #6c757d;
         }
 
-        /* --- LOADING OVERLAY (NOVO) --- */
+        /* --- LOADING OVERLAY --- */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -337,7 +342,6 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* Utilitário para ocultar elementos */
         .hidden { display: none !important; }
 
     </style>
@@ -432,8 +436,17 @@
                 <input type="date" id="data-fim">
             </div>
             <div class="filtro-item">
+                <label for="qtd-por-pagina">Exibir por pág:</label>
+                <select id="qtd-por-pagina">
+                    <option value="10">10</option>
+                    <option value="30" selected>30</option>
+                    <option value="50">50</option>
+                    <option value="all">Todos</option>
+                </select>
+            </div>
+            <div class="filtro-item">
                  <label>&nbsp;</label>
-                 <button type="button" id="btn-limpar-filtros" style="padding: 10px; cursor:pointer;">Limpar Filtros</button>
+                 <button type="button" id="btn-limpar-filtros" style="padding: 9px; cursor:pointer; border-radius:4px; border:1px solid #ccc;">Limpar</button>
             </div>
         </div>
 
@@ -474,10 +487,13 @@
             // Elementos DOM
             const formReserva = document.getElementById('form-reserva');
             const tabelaReservasBody = document.querySelector('#tabela-reservas tbody');
+            
+            // Elementos de Filtro
             const filtroStatusSelect = document.getElementById('filtro-status');
             const dataInicioInput = document.getElementById('data-inicio');
             const dataFimInput = document.getElementById('data-fim');
             const filtroPesquisaInput = document.getElementById('filtro-pesquisa'); 
+            const qtdPorPaginaSelect = document.getElementById('qtd-por-pagina'); // Novo
             const btnLimparFiltros = document.getElementById('btn-limpar-filtros');
             
             const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
@@ -494,7 +510,7 @@
             const ultimoUsuarioInfo = document.getElementById('ultimo-usuario-info');
             const loadingOverlay = document.getElementById('loading-overlay');
 
-            // Cards de Resumo
+            // Cards e Paginação
             const totalReservasElement = document.getElementById('total-reservas');
             const totalConfirmadasElement = document.getElementById('total-confirmadas');
             const totalCanceladasElement = document.getElementById('total-canceladas');
@@ -504,11 +520,11 @@
 
             // Variáveis de Controle
             let reservaParaEditar = null;
-            const itemsPerPage = 10;
+            let itemsPerPage = 30; // Padrão inicial alterado para 30
             let currentPage = 1;
             let reservas = [];
 
-            // --- MELHORIA 1: Carregar Usuário do LocalStorage ---
+            // --- Carregar Usuário do LocalStorage ---
             const usuarioSalvo = localStorage.getItem('reserva_clube_usuario');
             if (usuarioSalvo) {
                 usuarioInput.value = usuarioSalvo;
@@ -525,14 +541,14 @@
                 appId: "1:540617636797:web:5081ca29f77cb9c5fab0d4"
             };
 
-            // Inicialização Firebase Segura
+            // Inicialização Firebase
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
             }
             const database = firebase.database();
             const reservasRef = database.ref('reservas');
             
-            // --- MELHORIA 2: Função de Loading ---
+            // --- Função de Loading ---
             function toggleLoading(show) {
                 if (show) {
                     loadingOverlay.classList.remove('hidden');
@@ -543,8 +559,7 @@
 
             // Carregamento de Dados
             reservasRef.on('value', (snapshot) => {
-                toggleLoading(true); // Inicia loading
-                
+                toggleLoading(true);
                 try {
                     const data = snapshot.val();
                     reservas = [];
@@ -561,7 +576,7 @@
                     console.error("Erro ao processar dados:", error);
                     alert("Erro ao carregar dados. Verifique sua conexão.");
                 } finally {
-                    toggleLoading(false); // Remove loading
+                    toggleLoading(false);
                 }
             });
 
@@ -587,13 +602,12 @@
                 dataAtual.setHours(0, 0, 0, 0);
 
                 if (dataSelecionada < dataAtual && !reservaParaEditar) {
-                    // Permitir edição de datas passadas se já existiam, mas bloquear novas
                      if(!confirm("Atenção: Você está agendando para uma data que já passou. Deseja continuar?")) {
                          return;
                      }
                 }
 
-                // Verificação Simples de Conflito
+                // Verificação de Conflito
                 const conflitoExistente = reservas.some(reserva => 
                     reserva.data === dataInput.value &&
                     reserva.descricao.toLowerCase() === descricaoInput.value.toLowerCase() &&
@@ -606,7 +620,6 @@
                     return;
                 }
 
-                // Salvar usuário no LocalStorage para próxima vez
                 localStorage.setItem('reserva_clube_usuario', usuarioInput.value);
 
                 const dadosReserva = {
@@ -618,11 +631,10 @@
                     ultimoUsuario: usuarioInput.value
                 };
                 
-                btnFormReserva.disabled = true; // Previne duplo clique
+                btnFormReserva.disabled = true;
                 toggleLoading(true);
 
                 if (reservaParaEditar) {
-                    // Manter o status original ao editar outros campos, a menos que mude explicitamente na tabela
                     dadosReserva.status = reservaParaEditar.status; 
                     
                     reservasRef.child(reservaParaEditar.id).update(dadosReserva)
@@ -640,11 +652,10 @@
                         });
 
                 } else {
-                    dadosReserva.status = 'Reservado'; // Status padrão
+                    dadosReserva.status = 'Reservado';
                     reservasRef.push(dadosReserva)
                         .then(() => {
                             mostrarMensagemSucesso("Nova reserva criada!");
-                            // Não limpa o usuárioInput no reset
                             const userTemp = usuarioInput.value;
                             formReserva.reset();
                             usuarioInput.value = userTemp;
@@ -664,11 +675,9 @@
             contatoInput.addEventListener('input', (e) => {
                 let value = e.target.value.replace(/\D/g, '');
                 let formattedValue = '';
-
                 if (value.length > 0) formattedValue = '(' + value.substring(0, 2);
                 if (value.length >= 3) formattedValue += ') ' + value.substring(2, 7);
                 if (value.length >= 8) formattedValue += '-' + value.substring(7, 11);
-
                 e.target.value = formattedValue;
             });
 
@@ -678,11 +687,25 @@
             dataFimInput.addEventListener('change', () => { currentPage = 1; renderizarTabela(); });
             filtroPesquisaInput.addEventListener('input', () => { currentPage = 1; renderizarTabela(); });
             
+            // --- Listener do NOVO Seletor de Quantidade ---
+            qtdPorPaginaSelect.addEventListener('change', (e) => {
+                const valor = e.target.value;
+                if (valor === 'all') {
+                    itemsPerPage = 99999; // Número alto para exibir todos
+                } else {
+                    itemsPerPage = parseInt(valor);
+                }
+                currentPage = 1; // Volta para a primeira página
+                renderizarTabela();
+            });
+            
             btnLimparFiltros.addEventListener('click', () => {
                 filtroStatusSelect.value = 'ativos';
                 dataInicioInput.value = '';
                 dataFimInput.value = '';
                 filtroPesquisaInput.value = '';
+                qtdPorPaginaSelect.value = '30'; // Reseta para o padrão
+                itemsPerPage = 30;
                 currentPage = 1;
                 renderizarTabela();
             });
@@ -691,16 +714,13 @@
             gerarPdfBtn.addEventListener('click', () => {
                 const tabelaParaPdf = document.getElementById('tabela-para-pdf');
                 
-                // Preparação visual para PDF
                 const linhas = document.querySelectorAll('#tabela-reservas tbody tr');
                 const thAcoes = document.querySelector('th:last-child');
                 const tdAcoes = document.querySelectorAll('td:last-child');
                 
-                // Esconder colunas desnecessárias no PDF
                 thAcoes.style.display = 'none';
                 tdAcoes.forEach(td => td.style.display = 'none');
 
-                // Forçar background colors para impressão (html2canvas as vezes perde styles)
                 linhas.forEach(linha => {
                     const cor = window.getComputedStyle(linha).backgroundColor;
                     linha.style.backgroundColor = cor;
@@ -711,11 +731,10 @@
                     filename: 'relatorio_reservas.pdf',
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, useCORS: true },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } // Landscape cabe mais info
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
                 };
 
                 html2pdf().set(opt).from(tabelaParaPdf).save().then(() => {
-                    // Restaurar visual
                     thAcoes.style.display = '';
                     tdAcoes.forEach(td => td.style.display = '');
                     linhas.forEach(linha => linha.style.backgroundColor = '');
@@ -725,24 +744,19 @@
             // Geração de CSV
             gerarCsvBtn.addEventListener('click', () => {
                 const dadosTabela = [];
-                // BOM para acentos Excel
                 const BOM = "\uFEFF"; 
                 const cabecalho = ['Data', 'Descricao', 'Responsavel', 'Contato', 'Observacoes', 'Status', 'Criador'];
                 dadosTabela.push(cabecalho.join(';'));
                 
-                // Usamos a lista filtrada atual (não paginada) para o CSV ser completo do que se vê? 
-                // Melhor usar 'reservas' (todas) ou implementar lógica de exportar filtrados.
-                // Aqui vou exportar o que está visível nos filtros aplicados (sem paginação):
-                
-                const reservasParaExportar = filtrarReservas(); // Função criada abaixo
+                const reservasParaExportar = filtrarReservas();
                 
                 reservasParaExportar.forEach(reserva => {
                     const linha = [
                         formatarData(reserva.data),
-                        `"${reserva.descricao}"`, // Aspas para evitar quebra com ; na string
+                        `"${reserva.descricao}"`,
                         `"${reserva.responsavel}"`,
                         reserva.contato,
-                        `"${(reserva.observacoes || '').replace(/(\r\n|\n|\r)/gm, " ")}"`, // Remove quebras de linha
+                        `"${(reserva.observacoes || '').replace(/(\r\n|\n|\r)/gm, " ")}"`,
                         reserva.status,
                         reserva.ultimoUsuario
                     ];
@@ -761,7 +775,7 @@
 
             fecharPaginaBtn.addEventListener('click', () => window.close());
             
-            // Ações na Tabela (Delegation)
+            // Ações na Tabela
             tabelaReservasBody.addEventListener('click', (e) => {
                 const target = e.target;
                 const tr = target.closest('tr');
@@ -815,7 +829,7 @@
             }
 
             function resetarFormulario() {
-                const userSaved = usuarioInput.value; // Tenta manter o usuario
+                const userSaved = usuarioInput.value;
                 formReserva.reset();
                 usuarioInput.value = userSaved;
                 
@@ -969,7 +983,6 @@
 
                 paginationContainer.appendChild(createBtn('«', currentPage - 1, false, currentPage === 1));
 
-                // Lógica simples de paginação (mostrar poucas paginas)
                 let startPage = Math.max(1, currentPage - 2);
                 let endPage = Math.min(totalPaginas, currentPage + 2);
 
@@ -984,7 +997,6 @@
                 const reserva = reservas.find(res => res.id === id);
                 if (!reserva) return;
                 
-                // Evita criar multiplos selects
                 if(cell.querySelector('select')) return;
 
                 const statusAtual = reserva.status;
@@ -1009,14 +1021,14 @@
                         reservasRef.child(reserva.id).update({ status: novoStatus })
                             .then(() => mostrarMensagemSucesso("Status atualizado!"))
                             .catch(error => console.error(error))
-                            .finally(() => toggleLoading(false)); // Tabela re-renderiza no listener .on()
+                            .finally(() => toggleLoading(false));
                     } else {
-                        renderizarTabela(); // Restaura visual se não mudou
+                        renderizarTabela();
                     }
                 };
 
                 select.addEventListener('blur', salvarStatus);
-                select.addEventListener('change', () => select.blur()); // Salva ao mudar opção
+                select.addEventListener('change', () => select.blur());
             }
             
             function atualizarUltimoUsuarioNaPagina() {
