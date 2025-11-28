@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aabb-reservas-v1';
+const CACHE_NAME = 'aabb-reservas-v3';
 const urlsToCache = [
   './',
   './index.html',
