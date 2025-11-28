@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão de Reservas - AABB Aracaju</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#003399">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
@@ -428,6 +434,16 @@
     </div>
 
     <script>
+        // Registro PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registrado!', reg))
+                    .catch(err => console.log('Erro no SW:', err));
+            });
+        }
+
+        // Lógica do App
         document.addEventListener('DOMContentLoaded', () => {
             // Elementos Login
             const loginContainer = document.getElementById('login-container');
