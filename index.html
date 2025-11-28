@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro de Reservas do Clube</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <style>
         body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            background-color: #f4f4f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fonte mais moderna */
+            font-size: 13px; /* Levemente maior para leitura */
+            background-color: #f0f2f5;
             margin: 0;
             padding: 20px;
         }
@@ -22,240 +22,255 @@
             max-width: 1200px;
             margin: 0 auto;
             background: #fff;
-            padding: 20px 30px;
-            border-radius: 8px;
-            box-shadow: 0 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 25px 35px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            position: relative;
         }
 
         h1, h2 {
             text-align: center;
-            color: #333;
+            color: #2c3e50;
         }
 
         hr {
             border: 0;
-            border-top: 1px solid #eee;
-            margin: 20px 0;
+            border-top: 1px solid #e1e4e8;
+            margin: 25px 0;
         }
 
+        /* --- Formulário --- */
         .input-group {
             margin-bottom: 15px;
         }
 
         .input-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #444;
         }
 
         .input-group input,
-        .input-group textarea {
+        .input-group textarea,
+        .input-group select { /* Select adicionado */
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             box-sizing: border-box;
             border: 1px solid #ccc;
-            border-radius: 4px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            border-color: #007bff;
+            outline: none;
         }
         
         #btn-form-reserva {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             background-color: #28a745;
             color: #fff;
             border: none;
-            border-radius: 4px;
+            border-radius: 5px;
             font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 15px;
+            transition: background 0.3s;
         }
 
         #btn-form-reserva:hover {
             background-color: #218838;
         }
+        
+        #btn-form-reserva:disabled {
+            background-color: #94d3a2;
+            cursor: not-allowed;
+        }
 
+        /* --- Filtros --- */
         .filtros-container {
             display: flex;
             justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
+            align-items: flex-end; /* Alinha labels na base */
+            margin-bottom: 25px;
             flex-wrap: wrap;
             gap: 15px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
         }
 
         .filtro-item {
-            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
         }
         
+        /* --- Tabela --- */
         .tabela-wrapper {
             overflow-x: auto;
+            border-radius: 6px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.05);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 0;
             table-layout: fixed;
+            background: white;
         }
 
         table, th, td {
-            border: 1px solid #ddd;
+            border: 1px solid #dee2e6;
         }
         
         th, td {
-            padding: 12px;
+            padding: 12px 15px;
             text-align: left;
             word-wrap: break-word;
         }
         
         th {
-            background-color: #f2f2f2;
-            color: #333;
+            background-color: #f1f3f5;
+            color: #495057;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
         }
 
-        th:nth-child(1), td:nth-child(1) { width: 7%; }  /* Data */
+        /* Larguras das Colunas ajustadas */
+        th:nth-child(1), td:nth-child(1) { width: 90px; }  /* Data */
         th:nth-child(2), td:nth-child(2) { width: 18%; } /* Descrição */
         th:nth-child(3), td:nth-child(3) { width: 15%; } /* Responsável */
-        th:nth-child(4), td:nth-child(4) { width: 10%; } /* Contato */
-        th:nth-child(5), td:nth-child(5) { width: 28%; } /* Observações */
-        th:nth-child(6), td:nth-child(6) { width: 10%; } /* Status */
-        th:nth-child(7), td:nth-child(7) { width: 12%; } /* Criador / Ações */
+        th:nth-child(4), td:nth-child(4) { width: 110px; } /* Contato */
+        th:nth-child(5), td:nth-child(5) { width: 25%; } /* Observações */
+        th:nth-child(6), td:nth-child(6) { width: 100px; text-align: center;} /* Status */
+        th:nth-child(7), td:nth-child(7) { width: 100px; text-align: center;} /* Criador / Ações */
 
-
-        /* Classes de cores para as linhas da tabela */
+        /* Cores das linhas */
         .confirmado-row { background-color: #d4edda; }
         .reservado-row { background-color: #fff3cd; }
-        .cancelado-row { background-color: #e9ecef; }
-        .realizado-row { background-color: #e2e3e5; } /* NOVO */
+        .cancelado-row { background-color: #f8d7da; } /* Um pouco mais vermelho para destaque */
+        .realizado-row { background-color: #e2e3e5; }
         
-        /* NOVO: Estilos para o novo "rótulo" de status */
+        /* Badges de Status */
         .status-badge {
             display: inline-block;
-            padding: 6px 12px;
-            border-radius: 15px;
+            padding: 5px 10px;
+            border-radius: 50px;
+            font-size: 11px;
             font-weight: bold;
             color: white;
             cursor: pointer;
             text-align: center;
             min-width: 80px;
-            box-sizing: border-box;
-            user-select: none;
+            box-shadow: 0 2px 2px rgba(0,0,0,0.1);
         }
         .badge-reservado { background-color: #007bff; }
         .badge-confirmado { background-color: #28a745; }
         .badge-cancelado { background-color: #dc3545; }
-        .badge-realizado { background-color: #6c757d; } /* NOVO */
+        .badge-realizado { background-color: #6c757d; }
         
+        /* --- Botões de Ação --- */
         .botoes-acao {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end; /* Alinha à direita */
             gap: 10px;
-            margin-top: 20px;
+            margin-top: 25px;
         }
 
         .botoes-acao button {
-            width: 100%;
-            margin-top: 0;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
         }
 
-        .btn-pdf {
-            background-color: #007bff;
-        }
+        .btn-pdf { background-color: #17a2b8; }
+        .btn-pdf:hover { background-color: #138496; }
 
-        .btn-pdf:hover {
-            background-color: #0056b3;
-        }
+        .btn-csv { background-color: #218838; }
+        .btn-csv:hover { background-color: #1e7e34; }
 
-        .btn-fechar {
-            background-color: #6c757d;
-        }
+        .btn-fechar { background-color: #6c757d; }
+        .btn-fechar:hover { background-color: #5a6268; }
 
-        .btn-fechar:hover {
-            background-color: #5a6268;
-        }
-
+        /* --- Mensagens e Edição --- */
         .mensagem-sucesso {
             background-color: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
             padding: 15px;
-            border-radius: 4px;
+            border-radius: 5px;
             margin-bottom: 20px;
             text-align: center;
             display: none;
+            font-weight: bold;
         }
         
         .btn-editar, .btn-cancelar-edicao, .btn-excluir {
-            padding: 5px 10px;
+            padding: 4px 8px;
             border: none;
             cursor: pointer;
-            border-radius: 4px;
-            font-size: 12px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin: 2px;
         }
 
-        .btn-editar {
-            background-color: #ffc107;
-            color: #000;
-        }
-        .btn-excluir {
-            background-color: #dc3545;
-            color: #fff;
-        }
+        .btn-editar { background-color: #ffc107; color: #000; }
+        .btn-excluir { background-color: #dc3545; color: #fff; }
+        .btn-cancelar-edicao { background-color: #dc3545; color: #fff; margin-left: 10px; }
 
-        .btn-cancelar-edicao {
-            background-color: #dc3545;
-            color: #fff;
-            margin-left: 10px;
-        }
-
-        .btn-csv {
-            background-color: #1a7c36;
-            color: #fff;
-        }
-
+        /* --- Cards de Resumo --- */
         .resumo-container {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             flex-wrap: wrap;
+            gap: 15px;
         }
 
         .resumo-card {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
+            background-color: #fff;
+            border: 1px solid #e1e4e8;
             border-radius: 8px;
             padding: 15px;
             text-align: center;
             flex: 1;
-            margin: 5px;
-            min-width: 150px;
+            min-width: 140px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
         }
         
         .resumo-card.alerta-vermelho {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-            color: #721c24;
-            box-shadow: 0 0 10px rgba(220, 53, 69, 0.4);
-            font-size: 1.1em;
+            background-color: #fff5f5;
+            border-color: #ffc9c9;
+            color: #c92a2a;
         }
 
         .resumo-card h3 {
-            margin: 0 0 5px;
-            font-size: 14px;
+            margin: 0 0 8px;
+            font-size: 13px;
             color: #666;
-        }
-
-        .resumo-card.alerta-vermelho h3,
-        .resumo-card.alerta-vermelho p {
-            color: #721c24;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .resumo-card p {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: bold;
             margin: 0;
-            color: #333;
+            color: #2c3e50;
         }
 
+        .resumo-card.alerta-vermelho p { color: #c92a2a; }
+
+        /* --- Paginação --- */
         .pagination-container {
             display: flex;
             justify-content: center;
@@ -267,10 +282,11 @@
 
         .page-button {
             padding: 8px 12px;
-            border: 1px solid #ccc;
+            border: 1px solid #dee2e6;
             border-radius: 4px;
-            background-color: #f9f9f9;
+            background-color: #fff;
             cursor: pointer;
+            color: #007bff;
         }
 
         .page-button.active {
@@ -282,17 +298,63 @@
         .page-button.disabled {
             cursor: not-allowed;
             opacity: 0.5;
+            color: #6c757d;
         }
+
+        /* --- LOADING OVERLAY (NOVO) --- */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        .loading-text {
+            color: #333;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Utilitário para ocultar elementos */
+        .hidden { display: none !important; }
+
     </style>
 </head>
 <body>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Carregando dados...</div>
+    </div>
 
     <div class="container">
         <h1>Cadastro de Reservas</h1>
 
         <div class="resumo-container">
             <div class="resumo-card">
-                <h3>Total de Reservas</h3>
+                <h3>Total</h3>
                 <p id="total-reservas">0</p>
             </div>
             <div class="resumo-card">
@@ -309,9 +371,7 @@
             </div>
         </div>
 
-        <div id="mensagem-sucesso" class="mensagem-sucesso">
-            Reserva adicionada com sucesso!
-        </div>
+        <div id="mensagem-sucesso" class="mensagem-sucesso"></div>
 
         <form id="form-reserva">
             <div class="input-group">
@@ -319,45 +379,48 @@
                 <input type="date" id="data" required>
             </div>
             <div class="input-group">
-                <label for="descricao">Descrição:</label>
-                <input type="text" id="descricao" placeholder="Ex: Churrasqueira, Salão de Festas" required>
+                <label for="descricao">Descrição (Local/Evento):</label>
+                <input type="text" id="descricao" placeholder="Ex: Churrasqueira, Salão de Festas, Aniversário" required>
             </div>
             <div class="input-group">
-                <label for="responsavel">Responsável:</label>
+                <label for="responsavel">Nome do Responsável:</label>
                 <input type="text" id="responsavel" required>
             </div>
             <div class="input-group">
-                <label for="contato">Contato:</label>
+                <label for="contato">WhatsApp / Contato:</label>
                 <input type="text" id="contato" placeholder="(99) 99999-9999" required maxlength="15">
             </div>
             <div class="input-group">
                 <label for="observacoes">Observações:</label>
-                <textarea id="observacoes" placeholder="Adicione notas ou observações"></textarea>
+                <textarea id="observacoes" placeholder="Adicione notas, horário específico, ou detalhes extras" rows="2"></textarea>
             </div>
             <div class="input-group">
-                <label for="usuario">Quem fez a reserva:</label>
-                <input type="text" id="usuario" placeholder="Quem fez a reserva" required>
+                <label for="usuario">Quem está registrando (Funcionário):</label>
+                <input type="text" id="usuario" placeholder="Seu nome" required>
             </div>
+            
             <button id="btn-form-reserva" type="submit">Adicionar Reserva</button>
-            <button id="btn-cancelar-edicao" class="btn-cancelar-edicao" style="display:none;" type="button">Cancelar Edição</button>
+            <div style="text-align: right; margin-top: 5px;">
+                <button id="btn-cancelar-edicao" class="btn-cancelar-edicao" style="display:none;" type="button">Cancelar Edição</button>
+            </div>
         </form>
 
         <hr>
 
         <div class="filtros-container">
-            <div class="filtro-item">
+            <div class="filtro-item" style="flex-grow: 1;">
                 <label for="filtro-pesquisa">Pesquisar:</label>
-                <input type="text" id="filtro-pesquisa" placeholder="Buscar por responsável ou descrição">
+                <input type="text" id="filtro-pesquisa" placeholder="Nome, descrição ou observação...">
             </div>
             <div class="filtro-item">
-                <label for="filtro-status">Filtrar por Status:</label>
+                <label for="filtro-status">Status:</label>
                 <select id="filtro-status">
                     <option value="ativos">Reservados e Confirmados</option>
-                    <option value="reservado">Reservados</option>
-                    <option value="confirmado">Confirmados</option>
+                    <option value="reservado">Apenas Reservados</option>
+                    <option value="confirmado">Apenas Confirmados</option>
                     <option value="realizado">Realizados</option>
                     <option value="cancelado">Cancelados</option>
-                    <option value="todos">Todos</option>
+                    <option value="todos">Todos os Registros</option>
                 </select>
             </div>
             <div class="filtro-item">
@@ -367,6 +430,10 @@
             <div class="filtro-item">
                 <label for="data-fim">Até:</label>
                 <input type="date" id="data-fim">
+            </div>
+            <div class="filtro-item">
+                 <label>&nbsp;</label>
+                 <button type="button" id="btn-limpar-filtros" style="padding: 10px; cursor:pointer;">Limpar Filtros</button>
             </div>
         </div>
 
@@ -382,7 +449,7 @@
                         <th>Contato</th>
                         <th>Observações</th>
                         <th>Status</th>
-                        <th>Criador / Ações</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -393,34 +460,41 @@
         <div id="pagination-container" class="pagination-container"></div>
         
         <div class="botoes-acao">
-            <button id="gerar-pdf-btn" class="btn-pdf">Gerar PDF</button>
-            <button id="gerar-csv-btn" class="btn-csv">Gerar Excel (CSV)</button>
-            <button id="fechar-pagina-btn" class="btn-fechar">Fechar Página</button>
+            <button id="gerar-pdf-btn" class="btn-pdf">Baixar PDF</button>
+            <button id="gerar-csv-btn" class="btn-csv">Baixar Excel (CSV)</button>
+            <button id="fechar-pagina-btn" class="btn-fechar">Sair</button>
         </div>
-        <div style="text-align: right; font-size: 14px; margin-top: 15px;">
+        <div style="text-align: right; font-size: 11px; margin-top: 15px; color: #888;">
             <p id="ultimo-usuario-info"></p>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Elementos DOM
             const formReserva = document.getElementById('form-reserva');
             const tabelaReservasBody = document.querySelector('#tabela-reservas tbody');
             const filtroStatusSelect = document.getElementById('filtro-status');
             const dataInicioInput = document.getElementById('data-inicio');
             const dataFimInput = document.getElementById('data-fim');
             const filtroPesquisaInput = document.getElementById('filtro-pesquisa'); 
+            const btnLimparFiltros = document.getElementById('btn-limpar-filtros');
+            
             const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
             const gerarCsvBtn = document.getElementById('gerar-csv-btn');
             const fecharPaginaBtn = document.getElementById('fechar-pagina-btn');
+            
             const mensagemSucesso = document.getElementById('mensagem-sucesso');
             const btnFormReserva = document.getElementById('btn-form-reserva');
             const btnCancelarEdicao = document.getElementById('btn-cancelar-edicao');
+            
             const contatoInput = document.getElementById('contato');
             const usuarioInput = document.getElementById('usuario');
             const observacoesInput = document.getElementById('observacoes');
             const ultimoUsuarioInfo = document.getElementById('ultimo-usuario-info');
+            const loadingOverlay = document.getElementById('loading-overlay');
 
+            // Cards de Resumo
             const totalReservasElement = document.getElementById('total-reservas');
             const totalConfirmadasElement = document.getElementById('total-confirmadas');
             const totalCanceladasElement = document.getElementById('total-canceladas');
@@ -428,10 +502,19 @@
             const reservas7diasCard = document.getElementById('reservas-7dias-card');
             const paginationContainer = document.getElementById('pagination-container');
 
+            // Variáveis de Controle
             let reservaParaEditar = null;
             const itemsPerPage = 10;
             let currentPage = 1;
+            let reservas = [];
 
+            // --- MELHORIA 1: Carregar Usuário do LocalStorage ---
+            const usuarioSalvo = localStorage.getItem('reserva_clube_usuario');
+            if (usuarioSalvo) {
+                usuarioInput.value = usuarioSalvo;
+            }
+
+            // Configuração Firebase
             const firebaseConfig = {
                 apiKey: "AIzaSyDut5CV-mDqnuKV0MH8MM2ivOQMP-AF94E",
                 authDomain: "reserva-b5ff4.firebaseapp.com",
@@ -442,24 +525,47 @@
                 appId: "1:540617636797:web:5081ca29f77cb9c5fab0d4"
             };
 
-            firebase.initializeApp(firebaseConfig);
+            // Inicialização Firebase Segura
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
             const database = firebase.database();
             const reservasRef = database.ref('reservas');
             
-            let reservas = [];
-
-            reservasRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                reservas = [];
-                for (let key in data) {
-                    reservas.push({ ...data[key], id: key });
+            // --- MELHORIA 2: Função de Loading ---
+            function toggleLoading(show) {
+                if (show) {
+                    loadingOverlay.classList.remove('hidden');
+                } else {
+                    loadingOverlay.classList.add('hidden');
                 }
-                ordenarReservas();
-                renderizarTabela();
-                atualizarUltimoUsuarioNaPagina();
-                atualizarResumo();
+            }
+
+            // Carregamento de Dados
+            reservasRef.on('value', (snapshot) => {
+                toggleLoading(true); // Inicia loading
+                
+                try {
+                    const data = snapshot.val();
+                    reservas = [];
+                    if (data) {
+                        for (let key in data) {
+                            reservas.push({ ...data[key], id: key });
+                        }
+                    }
+                    ordenarReservas();
+                    renderizarTabela();
+                    atualizarUltimoUsuarioNaPagina();
+                    atualizarResumo();
+                } catch (error) {
+                    console.error("Erro ao processar dados:", error);
+                    alert("Erro ao carregar dados. Verifique sua conexão.");
+                } finally {
+                    toggleLoading(false); // Remove loading
+                }
             });
 
+            // Submit do Formulário
             formReserva.addEventListener('submit', (e) => {
                 e.preventDefault();
 
@@ -474,15 +580,20 @@
 
                 const dataInput = document.getElementById('data');
                 const descricaoInput = document.getElementById('descricao');
+                
+                // Validação de Data Passada
                 const dataSelecionada = new Date(dataInput.value + 'T00:00:00');
                 const dataAtual = new Date();
                 dataAtual.setHours(0, 0, 0, 0);
 
-                if (dataSelecionada < dataAtual) {
-                    alert('Não é possível adicionar reservas em uma data que já passou.');
-                    return;
+                if (dataSelecionada < dataAtual && !reservaParaEditar) {
+                    // Permitir edição de datas passadas se já existiam, mas bloquear novas
+                     if(!confirm("Atenção: Você está agendando para uma data que já passou. Deseja continuar?")) {
+                         return;
+                     }
                 }
 
+                // Verificação Simples de Conflito
                 const conflitoExistente = reservas.some(reserva => 
                     reserva.data === dataInput.value &&
                     reserva.descricao.toLowerCase() === descricaoInput.value.toLowerCase() &&
@@ -491,9 +602,12 @@
                 );
 
                 if (conflitoExistente) {
-                    alert('Já existe uma reserva CONFIRMADA para esta data e descrição. Por favor, escolha outra.');
+                    alert('Já existe uma reserva CONFIRMADA para esta data e descrição. Verifique antes de salvar.');
                     return;
                 }
+
+                // Salvar usuário no LocalStorage para próxima vez
+                localStorage.setItem('reserva_clube_usuario', usuarioInput.value);
 
                 const dadosReserva = {
                     data: dataInput.value,
@@ -503,132 +617,139 @@
                     observacoes: observacoesInput.value,
                     ultimoUsuario: usuarioInput.value
                 };
+                
+                btnFormReserva.disabled = true; // Previne duplo clique
+                toggleLoading(true);
 
                 if (reservaParaEditar) {
+                    // Manter o status original ao editar outros campos, a menos que mude explicitamente na tabela
+                    dadosReserva.status = reservaParaEditar.status; 
+                    
                     reservasRef.child(reservaParaEditar.id).update(dadosReserva)
                         .then(() => {
                             mostrarMensagemSucesso("Reserva atualizada com sucesso!");
-                            formReserva.reset();
                             resetarFormulario();
                         })
-                        .catch(error => console.error("Erro ao atualizar reserva: ", error));
+                        .catch(error => {
+                            console.error("Erro", error);
+                            alert("Erro ao atualizar.");
+                        })
+                        .finally(() => {
+                            btnFormReserva.disabled = false;
+                            toggleLoading(false);
+                        });
 
                 } else {
-                    dadosReserva.status = 'Reservado';
+                    dadosReserva.status = 'Reservado'; // Status padrão
                     reservasRef.push(dadosReserva)
                         .then(() => {
-                            mostrarMensagemSucesso("Reserva adicionada com sucesso!");
+                            mostrarMensagemSucesso("Nova reserva criada!");
+                            // Não limpa o usuárioInput no reset
+                            const userTemp = usuarioInput.value;
                             formReserva.reset();
+                            usuarioInput.value = userTemp;
                         })
                         .catch(error => {
-                            console.error("Erro ao adicionar reserva: ", error);
+                            console.error("Erro", error);
+                            alert("Erro ao criar reserva.");
+                        })
+                        .finally(() => {
+                            btnFormReserva.disabled = false;
+                            toggleLoading(false);
                         });
                 }
             });
 
+            // Formatação Telefone
             contatoInput.addEventListener('input', (e) => {
                 let value = e.target.value.replace(/\D/g, '');
                 let formattedValue = '';
 
-                if (value.length > 0) {
-                    formattedValue = '(' + value.substring(0, 2);
-                }
-                if (value.length >= 3) {
-                    formattedValue += ') ' + value.substring(2, 7);
-                }
-                if (value.length >= 8) {
-                    formattedValue += '-' + value.substring(7, 11);
-                }
+                if (value.length > 0) formattedValue = '(' + value.substring(0, 2);
+                if (value.length >= 3) formattedValue += ') ' + value.substring(2, 7);
+                if (value.length >= 8) formattedValue += '-' + value.substring(7, 11);
 
                 e.target.value = formattedValue;
             });
 
-
-            filtroStatusSelect.addEventListener('change', () => {
-                currentPage = 1;
-                renderizarTabela();
-            });
-            dataInicioInput.addEventListener('change', () => {
-                currentPage = 1;
-                renderizarTabela();
-            });
-            dataFimInput.addEventListener('change', () => {
-                currentPage = 1;
-                renderizarTabela();
-            });
-            filtroPesquisaInput.addEventListener('input', () => {
+            // Listeners de Filtro
+            filtroStatusSelect.addEventListener('change', () => { currentPage = 1; renderizarTabela(); });
+            dataInicioInput.addEventListener('change', () => { currentPage = 1; renderizarTabela(); });
+            dataFimInput.addEventListener('change', () => { currentPage = 1; renderizarTabela(); });
+            filtroPesquisaInput.addEventListener('input', () => { currentPage = 1; renderizarTabela(); });
+            
+            btnLimparFiltros.addEventListener('click', () => {
+                filtroStatusSelect.value = 'ativos';
+                dataInicioInput.value = '';
+                dataFimInput.value = '';
+                filtroPesquisaInput.value = '';
                 currentPage = 1;
                 renderizarTabela();
             });
 
+            // Geração de PDF
             gerarPdfBtn.addEventListener('click', () => {
                 const tabelaParaPdf = document.getElementById('tabela-para-pdf');
                 
+                // Preparação visual para PDF
                 const linhas = document.querySelectorAll('#tabela-reservas tbody tr');
-                const estadosCores = Array.from(linhas).map(linha => {
-                    return {
-                        element: linha,
-                        corClass: Array.from(linha.classList).find(cls => cls.endsWith('-row'))
-                    };
-                });
-
-                linhas.forEach(linha => linha.classList.remove('reservado-row', 'confirmado-row', 'cancelado-row', 'realizado-row'));
                 const thAcoes = document.querySelector('th:last-child');
                 const tdAcoes = document.querySelectorAll('td:last-child');
+                
+                // Esconder colunas desnecessárias no PDF
                 thAcoes.style.display = 'none';
                 tdAcoes.forEach(td => td.style.display = 'none');
 
-                const thObservacoes = document.querySelector('th:nth-child(5)');
-                const tdObservacoes = document.querySelectorAll('td:nth-child(5)');
-                thObservacoes.style.display = 'none';
-                tdObservacoes.forEach(td => td.style.display = 'none');
-                
-                tabelaParaPdf.style.fontSize = '12px';
+                // Forçar background colors para impressão (html2canvas as vezes perde styles)
+                linhas.forEach(linha => {
+                    const cor = window.getComputedStyle(linha).backgroundColor;
+                    linha.style.backgroundColor = cor;
+                });
 
-                html2pdf(tabelaParaPdf, {
-                    margin: 10,
-                    filename: 'reservas_clube.pdf',
+                const opt = {
+                    margin: 5,
+                    filename: 'relatorio_reservas.pdf',
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2 },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                }).then(() => {
-                    tabelaParaPdf.style.fontSize = '';
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } // Landscape cabe mais info
+                };
+
+                html2pdf().set(opt).from(tabelaParaPdf).save().then(() => {
+                    // Restaurar visual
                     thAcoes.style.display = '';
                     tdAcoes.forEach(td => td.style.display = '');
-
-                    thObservacoes.style.display = '';
-                    tdObservacoes.forEach(td => td.style.display = '');
-
-                    estadosCores.forEach(estado => {
-                        if (estado.corClass) {
-                            estado.element.classList.add(estado.corClass);
-                        }
-                    });
+                    linhas.forEach(linha => linha.style.backgroundColor = '');
                 });
             });
 
+            // Geração de CSV
             gerarCsvBtn.addEventListener('click', () => {
                 const dadosTabela = [];
+                // BOM para acentos Excel
+                const BOM = "\uFEFF"; 
                 const cabecalho = ['Data', 'Descricao', 'Responsavel', 'Contato', 'Observacoes', 'Status', 'Criador'];
                 dadosTabela.push(cabecalho.join(';'));
                 
-                const linhas = document.querySelectorAll('#tabela-reservas tbody tr');
-                linhas.forEach(linha => {
-                    const celulas = linha.querySelectorAll('td');
-                    const status = linha.querySelector('.status-select')?.value || linha.querySelector('.status-badge').textContent;
-                    const dadosLinha = [
-                        celulas[0].textContent,
-                        celulas[1].textContent,
-                        celulas[2].textContent,
-                        celulas[3].textContent,
-                        celulas[4].textContent,
-                        status,
-                        celulas[6].textContent.replace('EditarExcluir', '').trim()
+                // Usamos a lista filtrada atual (não paginada) para o CSV ser completo do que se vê? 
+                // Melhor usar 'reservas' (todas) ou implementar lógica de exportar filtrados.
+                // Aqui vou exportar o que está visível nos filtros aplicados (sem paginação):
+                
+                const reservasParaExportar = filtrarReservas(); // Função criada abaixo
+                
+                reservasParaExportar.forEach(reserva => {
+                    const linha = [
+                        formatarData(reserva.data),
+                        `"${reserva.descricao}"`, // Aspas para evitar quebra com ; na string
+                        `"${reserva.responsavel}"`,
+                        reserva.contato,
+                        `"${(reserva.observacoes || '').replace(/(\r\n|\n|\r)/gm, " ")}"`, // Remove quebras de linha
+                        reserva.status,
+                        reserva.ultimoUsuario
                     ];
-                    dadosTabela.push(dadosLinha.join(';'));
+                    dadosTabela.push(linha.join(';'));
                 });
 
-                const csvContent = "data:text/csv;charset=utf-8," + dadosTabela.join('\n');
+                const csvContent = "data:text/csv;charset=utf-8," + BOM + dadosTabela.join('\n');
                 const encodedUri = encodeURI(csvContent);
                 const link = document.createElement("a");
                 link.setAttribute("href", encodedUri);
@@ -638,38 +759,40 @@
                 document.body.removeChild(link);
             });
 
-            fecharPaginaBtn.addEventListener('click', () => {
-                window.close();
-            });
+            fecharPaginaBtn.addEventListener('click', () => window.close());
             
+            // Ações na Tabela (Delegation)
             tabelaReservasBody.addEventListener('click', (e) => {
-                if (e.target.classList.contains('btn-editar')) {
-                    const idReserva = e.target.closest('tr').dataset.id;
+                const target = e.target;
+                const tr = target.closest('tr');
+                if (!tr) return;
+                const idReserva = tr.dataset.id;
+
+                if (target.classList.contains('btn-editar')) {
                     editarReserva(idReserva);
                 }
-                if (e.target.classList.contains('btn-excluir')) {
-                    const idReserva = e.target.closest('tr').dataset.id;
-                    if (confirm("Tem certeza que deseja excluir esta reserva? Esta ação não pode ser desfeita.")) {
+                else if (target.classList.contains('btn-excluir')) {
+                    if (confirm("ATENÇÃO: Deseja realmente excluir permanentemente esta reserva?")) {
+                        toggleLoading(true);
                         reservasRef.child(idReserva).remove()
-                            .then(() => mostrarMensagemSucesso("Reserva excluída com sucesso!"))
-                            .catch(error => console.error("Erro ao excluir reserva: ", error));
+                            .then(() => mostrarMensagemSucesso("Excluído com sucesso!"))
+                            .catch(err => alert('Erro ao excluir: ' + err.message))
+                            .finally(() => toggleLoading(false));
                     }
                 }
-                
-                if (e.target.classList.contains('status-badge')) {
-                    const idReserva = e.target.closest('tr').dataset.id;
-                    const cell = e.target.closest('td');
+                else if (target.classList.contains('status-badge')) {
+                    const cell = target.closest('td');
                     abrirOpcoesStatus(idReserva, cell);
                 }
             });
 
-            btnCancelarEdicao.addEventListener('click', () => {
-                resetarFormulario();
-            });
+            btnCancelarEdicao.addEventListener('click', resetarFormulario);
 
+            // Funções Auxiliares
             function formatarData(dataString) {
+                if (!dataString) return '-';
                 const [ano, mes, dia] = dataString.split('-');
-                return `${dia}-${mes}-${ano}`;
+                return `${dia}/${mes}/${ano}`;
             }
 
             function editarReserva(id) {
@@ -680,17 +803,22 @@
                     document.getElementById('responsavel').value = reservaParaEditar.responsavel;
                     document.getElementById('contato').value = reservaParaEditar.contato;
                     document.getElementById('observacoes').value = reservaParaEditar.observacoes || '';
-                    document.getElementById('usuario').value = reservaParaEditar.ultimoUsuario || '';
+                    document.getElementById('usuario').value = reservaParaEditar.ultimoUsuario || usuarioInput.value;
                     
                     btnFormReserva.textContent = "Salvar Alterações";
                     btnFormReserva.style.backgroundColor = "#ffc107";
                     btnFormReserva.style.color = "#000";
                     btnCancelarEdicao.style.display = "inline-block";
+                    
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             }
 
             function resetarFormulario() {
+                const userSaved = usuarioInput.value; // Tenta manter o usuario
                 formReserva.reset();
+                usuarioInput.value = userSaved;
+                
                 btnFormReserva.textContent = "Adicionar Reserva";
                 btnFormReserva.style.backgroundColor = "#28a745";
                 btnFormReserva.style.color = "#fff";
@@ -707,9 +835,7 @@
             }
 
             function ordenarReservas() {
-                reservas.sort((a, b) => {
-                    return new Date(a.data) - new Date(b.data);
-                });
+                reservas.sort((a, b) => new Date(a.data) - new Date(b.data));
             }
 
             function atualizarResumo() {
@@ -740,27 +866,20 @@
                 }
             }
 
-            function renderizarTabela() {
-                tabelaReservasBody.innerHTML = '';
+            function filtrarReservas() {
                 const filtroStatus = filtroStatusSelect.value;
                 const dataInicio = dataInicioInput.value;
                 const dataFim = dataFimInput.value;
                 const termoPesquisa = filtroPesquisaInput.value.toLowerCase();
                 
-                let reservasFiltradas = reservas.filter(reserva => {
+                return reservas.filter(reserva => {
                     let statusValido = false;
                     if (filtroStatus === 'ativos') {
                         statusValido = reserva.status === 'Reservado' || reserva.status === 'Confirmado';
-                    } else if (filtroStatus === 'reservado') {
-                        statusValido = reserva.status === 'Reservado';
-                    } else if (filtroStatus === 'confirmado') {
-                        statusValido = reserva.status === 'Confirmado';
-                    } else if (filtroStatus === 'cancelado') {
-                        statusValido = reserva.status === 'Cancelado';
-                    } else if (filtroStatus === 'realizado') {
-                        statusValido = reserva.status === 'Realizado';
-                    } else { 
+                    } else if (filtroStatus === 'todos') { 
                         statusValido = true;
+                    } else {
+                        statusValido = reserva.status.toLowerCase() === filtroStatus;
                     }
                     
                     const dataReserva = new Date(reserva.data + 'T00:00:00');
@@ -775,44 +894,56 @@
 
                     return statusValido && dataInicioValida && dataFimValida && pesquisaValida;
                 });
+            }
 
-                const totalPaginas = Math.ceil(reservasFiltradas.length / itemsPerPage);
+            function renderizarTabela() {
+                tabelaReservasBody.innerHTML = '';
+                
+                const reservasFiltradas = filtrarReservas();
+                const totalPaginas = Math.ceil(reservasFiltradas.length / itemsPerPage) || 1;
+                
+                if (currentPage > totalPaginas) currentPage = totalPaginas;
+
                 const inicio = (currentPage - 1) * itemsPerPage;
                 const fim = inicio + itemsPerPage;
                 const reservasPaginadas = reservasFiltradas.slice(inicio, fim);
                 
+                if (reservasPaginadas.length === 0) {
+                    tabelaReservasBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">Nenhuma reserva encontrada.</td></tr>';
+                }
+
                 reservasPaginadas.forEach(reserva => {
                     const novaLinha = document.createElement('tr');
                     novaLinha.dataset.id = reserva.id;
                     
-                    if (reserva.status === 'Reservado') {
-                        novaLinha.classList.add('reservado-row');
-                    } else if (reserva.status === 'Confirmado') {
-                        novaLinha.classList.add('confirmado-row');
-                    } else if (reserva.status === 'Cancelado') {
-                        novaLinha.classList.add('cancelado-row');
-                    } else if (reserva.status === 'Realizado') {
-                        novaLinha.classList.add('realizado-row');
-                    }
+                    let rowClass = '';
+                    if (reserva.status === 'Reservado') rowClass = 'reservado-row';
+                    else if (reserva.status === 'Confirmado') rowClass = 'confirmado-row';
+                    else if (reserva.status === 'Cancelado') rowClass = 'cancelado-row';
+                    else if (reserva.status === 'Realizado') rowClass = 'realizado-row';
+                    
+                    if(rowClass) novaLinha.classList.add(rowClass);
                     
                     const numeroLimpo = reserva.contato.replace(/\D/g, '');
 
                     novaLinha.innerHTML = `
-                        <td>${formatarData(reserva.data)}</td>
-                        <td>${reserva.descricao}</td>
+                        <td style="text-align:center;">${formatarData(reserva.data)}</td>
+                        <td><strong>${reserva.descricao}</strong></td>
                         <td>${reserva.responsavel}</td>
                         <td>
-                            <a href="https://wa.me/55${numeroLimpo}" target="_blank">${reserva.contato}</a>
+                            <a href="https://wa.me/55${numeroLimpo}" target="_blank" style="text-decoration:none; color: #28a745; font-weight:bold;">
+                                📱 ${reserva.contato}
+                            </a>
                         </td>
-                        <td>${reserva.observacoes || ''}</td>
-                        <td>
+                        <td style="font-size: 11px; color: #555;">${reserva.observacoes || ''}</td>
+                        <td style="text-align:center;">
                             <span class="status-badge badge-${reserva.status.toLowerCase()}">${reserva.status}</span>
                         </td>
-                        <td>
-                            ${reserva.ultimoUsuario || 'N/A'}
-                            <div style="margin-top: 5px; display: flex; gap: 5px; justify-content: center;">
-                                <button class="btn-editar">Editar</button>
-                                <button class="btn-excluir">Excluir</button>
+                        <td style="text-align:center;">
+                            <div style="font-size:10px; color:#666; margin-bottom:4px;">Por: ${reserva.ultimoUsuario || '?'}</div>
+                            <div style="display: flex; gap: 4px; justify-content: center;">
+                                <button class="btn-editar" title="Editar">✏️</button>
+                                <button class="btn-excluir" title="Excluir">🗑️</button>
                             </div>
                         </td>
                     `;
@@ -826,76 +957,66 @@
             function renderizarPaginacao(totalPaginas) {
                 paginationContainer.innerHTML = '';
                 
-                const prevButton = document.createElement('button');
-                prevButton.textContent = 'Anterior';
-                prevButton.classList.add('page-button');
-                if (currentPage === 1) prevButton.classList.add('disabled');
-                prevButton.addEventListener('click', () => {
-                    if (currentPage > 1) {
-                        currentPage--;
-                        renderizarTabela();
-                    }
-                });
-                paginationContainer.appendChild(prevButton);
-                
-                for (let i = 1; i <= totalPaginas; i++) {
-                    const pageButton = document.createElement('button');
-                    pageButton.textContent = i;
-                    pageButton.classList.add('page-button');
-                    if (i === currentPage) pageButton.classList.add('active');
-                    pageButton.addEventListener('click', () => {
-                        currentPage = i;
-                        renderizarTabela();
-                    });
-                    paginationContainer.appendChild(pageButton);
+                const createBtn = (text, page, active = false, disabled = false) => {
+                    const btn = document.createElement('button');
+                    btn.textContent = text;
+                    btn.classList.add('page-button');
+                    if (active) btn.classList.add('active');
+                    if (disabled) btn.classList.add('disabled');
+                    if (!disabled) btn.onclick = () => { currentPage = page; renderizarTabela(); };
+                    return btn;
+                };
+
+                paginationContainer.appendChild(createBtn('«', currentPage - 1, false, currentPage === 1));
+
+                // Lógica simples de paginação (mostrar poucas paginas)
+                let startPage = Math.max(1, currentPage - 2);
+                let endPage = Math.min(totalPaginas, currentPage + 2);
+
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationContainer.appendChild(createBtn(i, i, i === currentPage));
                 }
                 
-                const nextButton = document.createElement('button');
-                nextButton.textContent = 'Próximo';
-                nextButton.classList.add('page-button');
-                if (currentPage === totalPaginas) nextButton.classList.add('disabled');
-                nextButton.addEventListener('click', () => {
-                    if (currentPage < totalPaginas) {
-                        currentPage++;
-                        renderizarTabela();
-                    }
-                });
-                paginationContainer.appendChild(nextButton);
+                paginationContainer.appendChild(createBtn('»', currentPage + 1, false, currentPage >= totalPaginas));
             }
             
             function abrirOpcoesStatus(id, cell) {
                 const reserva = reservas.find(res => res.id === id);
                 if (!reserva) return;
                 
-                const statusSelect = document.createElement('select');
-                statusSelect.classList.add('status-select');
-                statusSelect.innerHTML = `
-                    <option value="Reservado" ${reserva.status === 'Reservado' ? 'selected' : ''}>Reservado</option>
-                    <option value="Confirmado" ${reserva.status === 'Confirmado' ? 'selected' : ''}>Confirmado</option>
-                    <option value="Cancelado" ${reserva.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
-                    <option value="Realizado" ${reserva.status === 'Realizado' ? 'selected' : ''}>Realizado</option>
+                // Evita criar multiplos selects
+                if(cell.querySelector('select')) return;
+
+                const statusAtual = reserva.status;
+                
+                cell.innerHTML = `
+                    <select class="status-select-temp" style="padding:5px; border-radius:4px;">
+                        <option value="Reservado">Reservado</option>
+                        <option value="Confirmado">Confirmado</option>
+                        <option value="Cancelado">Cancelado</option>
+                        <option value="Realizado">Realizado</option>
+                    </select>
                 `;
                 
-                cell.innerHTML = '';
-                cell.appendChild(statusSelect);
-                statusSelect.focus();
+                const select = cell.querySelector('select');
+                select.value = statusAtual;
+                select.focus();
                 
-                statusSelect.addEventListener('change', (e) => {
-                    const novoStatus = e.target.value;
-                    reservasRef.child(reserva.id).update({ status: novoStatus })
-                        .then(() => {
-                            console.log("Status atualizado com sucesso!");
-                        })
-                        .catch(error => console.error("Erro ao atualizar status: ", error));
-                });
-                
-                statusSelect.addEventListener('blur', () => {
-                    setTimeout(() => {
-                        if (!document.activeElement.isEqualNode(statusSelect)) {
-                            renderizarTabela();
-                        }
-                    }, 100);
-                });
+                const salvarStatus = () => {
+                    const novoStatus = select.value;
+                    if (novoStatus !== statusAtual) {
+                        toggleLoading(true);
+                        reservasRef.child(reserva.id).update({ status: novoStatus })
+                            .then(() => mostrarMensagemSucesso("Status atualizado!"))
+                            .catch(error => console.error(error))
+                            .finally(() => toggleLoading(false)); // Tabela re-renderiza no listener .on()
+                    } else {
+                        renderizarTabela(); // Restaura visual se não mudou
+                    }
+                };
+
+                select.addEventListener('blur', salvarStatus);
+                select.addEventListener('change', () => select.blur()); // Salva ao mudar opção
             }
             
             function atualizarUltimoUsuarioNaPagina() {
@@ -905,7 +1026,7 @@
                         const ultimoId = Object.keys(ultimoRegistro)[0];
                         const dados = ultimoRegistro[ultimoId];
                         if (dados.ultimoUsuario) {
-                            ultimoUsuarioInfo.textContent = `Última alteração feita por: ${dados.ultimoUsuario}`;
+                            ultimoUsuarioInfo.textContent = `Último registro no sistema por: ${dados.ultimoUsuario} em ${formatarData(dados.data)}`;
                         }
                     }
                 });
